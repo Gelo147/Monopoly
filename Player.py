@@ -92,6 +92,7 @@ and property they currently own"""
                 #in jail and didn't roll double so pay bail
                 print(self.name + " paid 50 to get outta jail!")
                 self.takeMoney(50)
+                self.jailed = False
             self.position += sum(roll)
             if self.position > self.board.getSize():
                 #player passed go so add salary and wrap around to start of board
