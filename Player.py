@@ -80,11 +80,3 @@ and property they currently own"""
                 self.addMoney(200)
             self.resolveSpace(board.getSpace(self.position))
             turns -=1
-
-        
-        
-        
-    
-
-    
-        
