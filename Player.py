@@ -86,7 +86,7 @@ and property they currently own"""
                     #3 doubles means go to jail
                     print(self.name + " is going to jail!")
                     self.jailed = True
-                    self.position = 9
+                    self.position = 8
                     return
             elif self.jailed:
                 #in jail and didn't roll double so pay bail
