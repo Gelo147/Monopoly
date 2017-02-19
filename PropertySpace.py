@@ -9,7 +9,7 @@ class PropertySpace(Space):
         
     def __str__(self):
         owner = ""
-        if self.owner:
+        if self.owner is not None:
             owner = " // Owned by: Player " + str(self.owner)
         return "[Group:%s // %s // %s%s]\n" % (self.group,self.text,str(self.rent)+'€',owner)
     

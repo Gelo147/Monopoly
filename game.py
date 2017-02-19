@@ -2,6 +2,9 @@ from Board import Board
 from Player import Player
 import random
 
+GO_CASH = 50
+JAIL_FINE = 200
+
 def game(board_file,num_players):
     #setup
     playernames = {}
@@ -9,7 +12,8 @@ def game(board_file,num_players):
         playernames[i]=("Player "+str(i))
     board = Board(board_file,playernames)
     players = board.getPlayerList()
-    print(players)
+
+    
     
     
     #game loop
@@ -44,18 +48,23 @@ def resolveSpace(player,board):
             #if it's a property we check who owns it and resolve appropiately
             price = int(space.getRent())
             owner_id = space.getOwner()
-            if owner_id and owner_id != player.getId():
+            if owner_id is not None and owner_id != player.getId():
                 #someone else owns the space so player pays them
                 player.takeMoney(price)
                 owner = board.getPlayer(owner_id)
                 owner.addMoney(price)
                 print(player.getName() + " just paid rent on '"+ space.getText() +"' giving " + owner.getName() + " the amount of " + str(price)) 
-            elif player.getBalance() > price:
+            elif owner_id is None and player.getBalance() > price:
                 #no one owns the space so player auto buys it if funds allow
                 print(player.getName() + " just bought '"+ space.getText() +"' for " + str(price) )
                 player.takeMoney(price)
                 space.setOwner(player.getId())
+                print("XYZ:",space.getOwner())
                 player.addProperty(space)
+        elif space.getType() == 'GOTOJAIL':
+            print(player.getName() + " is going to jail!")
+            player.updateJailed(True)
+            player.setPosition(8)
     
     
 def takeTurn(player,board):
@@ -70,22 +79,22 @@ def takeTurn(player,board):
                 doubles += 1
                 if doubles == 3:
                     #3 doubles means go to jail
-                    print(player.getName() + " is going to jail!")
+                    print(player.getName() + " rolled 3 doubles and is going to jail!")
                     player.updateJailed(True)
                     player.setPosition(8)
                     return
             elif player.isJailed():
                 #in jail and didn't roll double so pay bail
-                print(player.getName() + " paid 50 to get outta jail!")
-                player.takeMoney(50)
+                print(player.getName() + " paid",JAIL_FINE,"to get outta jail!")
+                player.takeMoney(JAIL_FINE)
                 player.updateJailed(False)
                 
             player.setPosition(player.getPosition()+sum(roll))
             if player.getPosition()> board.getSize():
                 #player passed go so add salary and wrap around to start of board
                 player.setPosition(player.getPosition()- board.getSize())
-                print(player.getName()+ " passed go and got 200!")
-                player.addMoney(200)
+                print(player.getName()+ " passed go and got "+str(GO_CASH)+"!")
+                player.addMoney(GO_CASH)
             resolveSpace(player,board)
             turns -=1    
 

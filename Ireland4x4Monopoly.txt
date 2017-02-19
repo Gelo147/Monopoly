@@ -11,7 +11,7 @@ PROPERTY * DONEGAL * 220 * ulster *
 PROPERTY * CAVAN * 220 * ulster * 
 PROPERTY * MONAGHAN * 240 * ulster * 
 GOTOJAIL * GO TO JAIL * 
-PROPERTY * MEATH * 300 * ulster * 
-PROPERTY * DUBLIN * 300 * ulster * 
-PROPERTY * WEXFORD * 320 * ulster * 
+PROPERTY * MEATH * 300 * leinster * 
+PROPERTY * DUBLIN * 300 * leinster * 
+PROPERTY * WEXFORD * 320 * leinster * 
 

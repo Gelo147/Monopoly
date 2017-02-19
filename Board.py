@@ -7,7 +7,6 @@ class Board:
         self.vaildtypes = ["GO","PROPERTY","JAIL","FREE","GOTOJAIL"]
         self.property_sets = {}
         self.spaces = self.makeSpaces(filename)
-        print(self.property_sets)
         self.players = []
         for i in sorted(playernames):
             self.players.append(Player(i,playernames[i],self.property_sets))

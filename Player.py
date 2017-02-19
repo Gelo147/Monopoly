@@ -1,5 +1,6 @@
 ##import json
 import random
+import copy
 class Player:
     """ Class Player describes each player including how much money
 and property they currently own"""
@@ -9,7 +10,7 @@ and property they currently own"""
         self.name = name
         self.position = 0
         self.balance = 1500
-        self.properties = property_sets
+        self.properties = copy.deepcopy(property_sets)
         self.bankrupt = False
         self.jailed = False
     def __str__(self):
