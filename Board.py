@@ -40,4 +40,4 @@ class Board:
         return self.spaces[pos]
                              
     def getPlayer(self,player_id):
-        return self.players[player_id]
+        return self.players[player_id-1]
