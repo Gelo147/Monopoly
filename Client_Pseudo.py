@@ -15,8 +15,8 @@ class TestServer:
             data, addr = s.recvfrom(1024)
             data = json.loads(data.decode())
             print(data)
-            assert data["command"] == "GAME", True
-            assert data["values"]["game"]["name"] == "Monopoly", True
+            assert data["command"] == "GAME"
+            assert data["values"]["game"]["name"] == "Monopoly"
             print(data["command"])
 
 x = TestServer()

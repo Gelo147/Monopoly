@@ -18,7 +18,7 @@ class Server:
         # <---------- NOTE ---------->
         self.game = {
             "name": "Monopoly",
-            "players": {},  # id: Player map
+            "players": [],  # player names
             "comms": {},  # socket: id map
             "comms_rev": {},  # id: socket map
             "board": Board(),
@@ -70,8 +70,10 @@ class Server:
                             action = self.pay
                         elif data["command"] == "CARD":
                             action = self.card
+                        elif data["command"] == "START":
+                            action = self.start
                         else:
-                            #error message
+                            action = self.broadcast_error
                             pass
                         action(data,client_sock)
                     except Exception as e:
@@ -96,18 +98,30 @@ class Server:
                 if data["command"] == "POLL":
                     action = self.poll_games
                 else:
-                    action = self.unknown_command_error
+                    action = self.broadcast_error
                 action(data, broadcastsock, address)
             except timeout:
                 pass
             except Exception as e:
                 print("Broadcast Error ",e)
 
-    def unknown_command_error(self, data, broadcastsock, address):
+    def broadcast_error(self, data, sock, address=None):
+        # yes name is wrong... all errors go through here
         # {command:error}
         data = {"command": "ERROR",
                 "values": "Unknown command"}
-        self._send_answer(data, broadcastsock, address)
+        self._send_answer(data, sock, address) if address != None else self._send_answer_tcp(data, sock)
+
+    def _send_answer(self, data, sock, address):
+        sock.sendto(dumps(data).encode(), address)
+
+    def _send_answer_tcp(self,data, sock):
+        sock.send(dumps(data).encode())
+
+    def _push_notification(self,data,exclude=None):
+        for sock in self.game["comms"]:
+            if sock != exclude:
+                sock.send(dumps(data).encode())
 
     """
     <-------------------- CLIENT TO SERVER ------------------------------>
@@ -119,19 +133,25 @@ class Server:
         # called by request handler <function=_handle_broadcast> when
         # incoming message has <var=command> = CREATE
         # Returns: Success / Failure message
-        self.game["comms"][self.game["top_id"]] = sock
-        self.game["comms_rev"][sock] = self.game["top_id"]
-        #add player to the player list
-        self.game["players"][self.game["top_id"]] = Player(data["values"]["username"])
-        self.game["top_id"] += 1
-        print("=" * 50)
-        print(self.game)
-        print("="*50)
-        data = {
-            "command": "CREATE",
-            "values": "1",
-        }
-        self._send_answer_tcp(sock,data)
+        if len(self.game["players"]):
+            self.game["comms"][self.game["top_id"]] = sock
+            self.game["comms_rev"][sock] = self.game["top_id"]
+            #add player to the player list
+            self.game["players"].append(data["values"]["username"])
+            self.game["top_id"] += 1
+            print("=" * 50)
+            print(self.game)
+            print("="*50)
+            data = {
+                "command": "CREATE",
+                "values": "1",
+            }
+        else:
+            data = {
+                "command": "ERROR",
+                "values": "Game already created try joining",
+            }
+        self._send_answer_tcp(data,sock)
 
     def poll_games(self, data, sock, address):
         # called by request handler <function=_handle_broadcast> when
@@ -142,7 +162,7 @@ class Server:
             "values": {
                 "game": {
                     "name": self.game["name"],
-                    "players": [player.name for id, player in self.game["players"].items()]
+                    "players": [player for player in self.game["players"]]
                 }
             }
         }
@@ -157,26 +177,16 @@ class Server:
             self.game["comms"][self.game["top_id"]] = sock
             self.game["comms_rev"][sock] = self.game["top_id"]
             # add player to the player list
-            self.game["players"][self.game["top_id"]] = Player(data["values"]["username"])
+            self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
             success = 1
         data = {
             "command": "JOIN",
             "values": success,
         }
-        self._send_answer_tcp(sock, data)
+        self._send_answer_tcp(data, sock)
         self._push_notification(data,sock)
 
-    def _send_answer(self, data, sock, address):
-        sock.sendto(dumps(data).encode(), address)
-
-    def _send_answer_tcp(self,sock, data):
-        sock.send(dumps(data).encode())
-
-    def _push_notification(self,data,exclude=None):
-        for sock in self.game["comms"]:
-            if sock != exclude:
-                sock.send(dumps(data).encode())
 
     """
     <-------------------- CLIENT TO SERVER ------------------------------>
@@ -184,8 +194,32 @@ class Server:
         "missing a word" to an action performed as a result of a request
     <-------------------------------------------------------------------->
     """
+    def start(self,data, sock):
+        if self.game["comms"][sock] == 0:
+            if self.game["top_id"] >= 2:
+                self.game["started"] = True
+                data = {
+                    "command": "START",
+                    "values": {
+                        "players": self.game["players"],
+                    }
+                }
+            else:
+                data = {
+                    "command": "ERROR",
+                    "values": "You can't play on your own."
+                }
+        else:
+            data = {
+                "command": "CHAT",
+                "values": {
+                    "text": "Start the game already!!",
+                    "player": self.game["players"][self.game["comms"][sock]]
+                }
+            }
+        self._push_notification(data,sock)
 
-    def roll(self, values):
+    def roll(self, data, sock):
         # called by request handler <function=_handle_request> when
         # incoming message has <var=command> = ROLL
         # generates two random numbers in range(1,7)
@@ -194,10 +228,11 @@ class Server:
             "command": "ROLL",
             "values":{
                 "roll": [randint(1,7), randint(1,7)],
-]
             }
         }
-
+        self._send_answer_tcp(data,sock)
+        #send goto to all other players
+        self.go_to(data,sock)
 
     def buy(self, values):
         # called by request handler <function=_handle_request> when
@@ -213,7 +248,7 @@ class Server:
         # Returns: PAY message
         pass
 
-    def chat(self, values,sock):
+    def chat(self, data,sock):
         # called by request handler <function=_handle_request> when
         # incoming message has <var=command> = CHAT
         # Sends the message <var=text> that is in <var=values> onto other users,
@@ -223,23 +258,34 @@ class Server:
         data = {
             "command": "CHAT",
             "values": {
-                "text": values["text"],
+                "text": data["text"],
                 "from": self.game["comms"][sock].name
             }
         }
+        self._push_notification(data,sock)
 
-    def turn(self, values):
+    def turn(self, data, sock):
         # send message TURN to all clients
         # informing them of whose turn it is
         # <-- NOTE * self invoked sometimes?? * NOTE -->
-        pass
+        data = {
+            "command":"TURN",
+            "values":{
+                "players": "" #where will this be
+            }
+        }
 
-    def go_to(self, values):
+    def go_to(self, data,sock):
         # inform all players where one player is
         # {values: {palyer: int player_id, tile: int tile } }
-        pass
+        data = {
+            "command": "GOTO",
+            "player": self.game["comms_rev"][sock],
+            "tile": self.game["board"].move_player(self.game["comms_rev"][sock], sum(data["values"]["roll"]))
+        }
+        self._push_notification(data,sock)
 
-    def pay(self, values):
+    def pay(self, data, sock):
         # transaction between player and player or bank and player if
         # to or from are None
         # {"command": "PAY",
@@ -249,7 +295,6 @@ class Server:
         #        "amount": int amount
         #     }
         # }
-        pass
 
     def card(self, values):
         # Comunity Chest / Chance cards
