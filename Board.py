@@ -1,13 +1,14 @@
 from Space import Space
 from PropertySpace import PropertySpace
+from Player import Player
 class Board:
     """The representation of the game board where most of the action takes place"""
     def __init__(self,filename,playernames):
         self.vaildtypes = ["GO","PROPERTY","JAIL","FREE","GOTOJAIL"]
         self.spaces = self.makeSpaces(filename)
-        self.players = {}
-        for i in playernames:
-            self.players[i]=Player(i,playernames[i])
+        self.players = []
+        for i in sorted(playernames):
+            self.players.append(Player(i,playernames[i]))
     def __str__(self):
         #text representation of board
         output = ""
@@ -41,3 +42,7 @@ class Board:
                              
     def getPlayer(self,player_id):
         return self.players[player_id]
+    def removePlayer(self,player_id):
+        del self.players[player_id]
+    def getPlayerList(self):
+        return self.players
