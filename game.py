@@ -9,6 +9,7 @@ def game(board_file,num_players):
         playernames[i]=("Player "+str(i))
     board = Board(board_file,playernames)
     players = board.getPlayerList()
+    print(players)
     
     
     #game loop
@@ -19,6 +20,7 @@ def game(board_file,num_players):
             print("%s has %i€ and is on space %i." %(player.getName(),player.getBalance(),player.getPosition()+1))
             if player.isBankrupt():
                 print("%s has gone bankrupt and is out of the game. %i player(s) remain." %(player.getName(),len(players)-1))
+                removePlayer(player)
                 players.remove(player)
                 if len(players) == 1:
                     break
@@ -36,16 +38,24 @@ def rollDice(player):
     print(player.getName() + " rolled a "+ str(die1) + " and a " + str(die2) + "!")
     return [die1,die2]
 
-def resolveSpace(player,space):
+def resolveSpace(player,board):
+        space = board.getSpace(player.getPosition())
         if space.getType() == 'PROPERTY':
+            #if it's a property we check who owns it and resolve appropiately
             price = int(space.getRent())
-            if space.getOwner() and space.getOwner() != player.getId():
+            owner_id = space.getOwner()
+            if owner_id and owner_id != player.getId():
+                #someone else owns the space so player pays them
                 player.takeMoney(price)
-                print(player.getName() + " just paid rent on '"+ space.getText() +"' costing them " + str(price)) 
+                owner = board.getPlayer(owner_id)
+                owner.addMoney(price)
+                print(player.getName() + " just paid rent on '"+ space.getText() +"' giving " + owner.getName() + " the amount of " + str(price)) 
             elif player.getBalance() > price:
+                #no one owns the space so player auto buys it if funds allow
                 print(player.getName() + " just bought '"+ space.getText() +"' for " + str(price) )
                 player.takeMoney(price)
                 space.setOwner(player.getId())
+                player.addProperty(space)
     
     
 def takeTurn(player,board):
@@ -76,8 +86,15 @@ def takeTurn(player,board):
                 player.setPosition(player.getPosition()- board.getSize())
                 print(player.getName()+ " passed go and got 200!")
                 player.addMoney(200)
-            resolveSpace(player,board.getSpace(player.getPosition()))
+            resolveSpace(player,board)
             turns -=1    
 
+def removePlayer(player):
+    #take a player out of the game and handle all their missing properties
+    groups = player.getProperties()
+    for group in groups:
+        for space in groups[group][0]:
+            player.removeProperty(space)
+    
                 
     

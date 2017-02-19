@@ -5,10 +5,12 @@ class Board:
     """The representation of the game board where most of the action takes place"""
     def __init__(self,filename,playernames):
         self.vaildtypes = ["GO","PROPERTY","JAIL","FREE","GOTOJAIL"]
+        self.property_sets = {}
         self.spaces = self.makeSpaces(filename)
+        print(self.property_sets)
         self.players = []
         for i in sorted(playernames):
-            self.players.append(Player(i,playernames[i]))
+            self.players.append(Player(i,playernames[i],self.property_sets))
     def __str__(self):
         #text representation of board
         output = ""
@@ -26,7 +28,11 @@ class Board:
             for line in filehandle:
                     args = line.split(" * ")
                     if args[0] == "PROPERTY":
-                            spaces += [PropertySpace(args[1],args[2],args[3])]
+                            spaces += [PropertySpace(args[1],int(args[2]),args[3])]
+                            if args[3] not in self.property_sets:
+                                self.property_sets[args[3]] = [[],1]
+                            else:
+                                self.property_sets[args[3]][1]+=1
                     elif args[0] in self.vaildtypes:
                             spaces += [Space(args[0],args[1])]
             return spaces
@@ -42,7 +48,7 @@ class Board:
                              
     def getPlayer(self,player_id):
         return self.players[player_id]
-    def removePlayer(self,player_id):
-        del self.players[player_id]
+
     def getPlayerList(self):
-        return self.players
+        player_list = list(self.players)
+        return player_list
