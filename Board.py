@@ -5,9 +5,9 @@ class Board:
     def __init__(self,filename,playernames):
         self.vaildtypes = ["GO","PROPERTY","JAIL","FREE","GOTOJAIL"]
         self.spaces = self.makeSpaces(filename)
-        self.players = []
-        for i in range(len(playernames):
-            self.players += [Player(i+1,playernames[i])
+        self.players = {}
+        for i in playernames:
+            self.players[i]=Player(i,playernames[i])
     def __str__(self):
         #text representation of board
         output = ""
@@ -40,4 +40,4 @@ class Board:
         return self.spaces[pos]
                              
     def getPlayer(self,player_id):
-        return self.players[player_id-1]
+        return self.players[player_id]
