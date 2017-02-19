@@ -274,6 +274,7 @@ class Server:
                 "players": "" #where will this be
             }
         }
+        self._push_notification(data)
 
     def go_to(self, data,sock):
         # inform all players where one player is
@@ -295,6 +296,11 @@ class Server:
         #        "amount": int amount
         #     }
         # }
+        if data["values"]["to"]:
+            self.game["board"].getPlayer(data["values"]["to"]).addMoney(data["values"]["amount"])
+        if data["values"]["from"]:
+            self.game["board"].getPlayer(data["values"]["from"]).takeMoney(data["values"]["amount"])
+        self. _push_notification(data)
 
     def card(self, values):
         # Comunity Chest / Chance cards

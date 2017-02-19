@@ -18,6 +18,7 @@ class TestServer:
             assert data["command"] == "GAME"
             assert data["values"]["game"]["name"] == "Monopoly"
             print(data["command"])
+        s.close()
 
 x = TestServer()
 x.test_broadcast()
