@@ -2,10 +2,12 @@ from Space import Space
 from PropertySpace import PropertySpace
 class Board:
     """The representation of the game board where most of the action takes place"""
-    def __init__(self,filename):
+    def __init__(self,filename,playernames):
         self.vaildtypes = ["GO","PROPERTY","JAIL","FREE","GOTOJAIL"]
         self.spaces = self.makeSpaces(filename)
-	
+        self.players = []
+        for i in range(len(playernames):
+            self.players += [Player(i+1,playernames[i])
     def __str__(self):
         #text representation of board
         output = ""
@@ -30,8 +32,12 @@ class Board:
         except FileNotFoundError:
                 print("Sorry couldn't find file '%s', please make sure it exists" % (filename))
                 exit()
+                             
     def getSize(self):
         return len(self.spaces) -1
+                             
     def getSpace(self,pos):
         return self.spaces[pos]
-                                
+                             
+    def getPlayer(self,player_id):
+        return self.players[player_id]

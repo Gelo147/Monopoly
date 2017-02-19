@@ -3,11 +3,10 @@ import random
 class Player:
     """ Class Player describes each player including how much money
 and property they currently own"""
-    def __init__(self,player_id,name,board):
+    def __init__(self,player_id,name):
         #takes in an id and a name
         self.id = player_id
         self.name = name
-        self.board = board
         self.position = 0
         self.bankrupt = False
         self.balance = 1500
@@ -49,8 +48,9 @@ and property they currently own"""
     def setPosition(self,position):
         #move the player to a specified position
         self.position = position
-        
-    def rollDice(self):
+
+    #needs to move to client?    
+    """def rollDice(self):
         
         ##request = {"command": "ROLL","values": {}}
         ##request_json = json.dumps(request)
@@ -58,9 +58,9 @@ and property they currently own"""
         die1 = random.randint(1,6)
         die2 = random.randint(1,6)
         print(self.name + " rolled a "+ str(die1) + " and a " + str(die2) + "!")
-        return [die1,die2]
-    
-    def resolveSpace(self,space):
+        return [die1,die2]"""
+    #needs to move to game
+    """def resolveSpace(self,space):
         if space.getType() == 'PROPERTY':
             price = int(space.getRent())
             if space.getOwner() and space.getOwner() != self.id:
@@ -69,10 +69,11 @@ and property they currently own"""
             elif self.balance > price:
                 print(self.name + " just bought '"+ space.getText() +"' for " + str(price) )
                 self.takeMoney(price)
-                space.setOwner(self.id)
+                space.setOwner(self.id)"""
             
              
-    def takeTurn(self):
+    #needs to move to game;
+"""def takeTurn(self):
         #ask server to roll dice, make move and resolve space landed on
         doubles = 0
         turns = 1
@@ -100,4 +101,4 @@ and property they currently own"""
                 print(self.name + " passed go and got 200!")
                 self.addMoney(200)
             self.resolveSpace(self.board.getSpace(self.position))
-            turns -=1
+            turns -=1"""
