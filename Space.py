@@ -10,5 +10,3 @@ class Space:
         return self.type
     def getText(self):
         return self.text
-        
-        

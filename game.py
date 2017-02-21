@@ -12,6 +12,7 @@ def game(board_file,num_players):
         playernames[i]=("Player "+str(i))
     board = Board(board_file,playernames)
     players = board.getPlayerList()
+    #on_bail = {}
 
     
     
@@ -34,7 +35,7 @@ def game(board_file,num_players):
     print(players[0].getName() + " is the winner! Thanks for playing!")
     
 def test():
-    game("Ireland4x4Monopoly.txt",4)
+    game("Ireland5x4Monopoly.txt",4)
 
 def rollDice(player):
     die1 = random.randint(1,6)
@@ -44,7 +45,8 @@ def rollDice(player):
 
 def resolveSpace(player,board):
         space = board.getSpace(player.getPosition())
-        if space.getType() == 'PROPERTY':
+        space_type = space.getType()
+        if  space_type == 'PROPERTY':
             #if it's a property we check who owns it and resolve appropiately
             price = int(space.getRent())
             owner_id = space.getOwner()
@@ -59,12 +61,48 @@ def resolveSpace(player,board):
                 print(player.getName() + " just bought '"+ space.getText() +"' for " + str(price) )
                 player.takeMoney(price)
                 space.setOwner(player.getId())
-                print("XYZ:",space.getOwner())
                 player.addProperty(space)
-        elif space.getType() == 'GOTOJAIL':
+        elif space_type  == 'DECK':
+            card = space.drawCard()
+            handleCard(player,card)
+        elif space_type  == 'GOTOJAIL':
+            #if the space is go to jail send the player to jail and tell them they are jailed
             print(player.getName() + " is going to jail!")
             player.updateJailed(True)
             player.setPosition(8)
+
+def handleCard(player,card):
+    #takes a card and a player and sends the card to the player then performs appopiate action
+    print(player.getName() + " drew this card: ['" + card.getText() +"']")
+    card_type = card.getType()
+    card_value = card.getValue()
+
+    if card_type == 'COLLECT':
+        #send CARD then PAY from None to player
+        player.addMoney(int(card_value))
+        print(player.getName() + " just collected an amount of " + str(card_value))
+    elif card_type == 'PAY':
+        #send CARD then PAY from player to None
+        player.takeMoney(int(card_value))
+        print(player.getName() + " just paid an amount of " + str(card_value)) 
+    elif card_type == 'BAIL':
+        #send CARD with bail type True
+        print(player.getName() + " is now on bail")
+        #on_bail.add(player)
+    elif card_type == 'GOTO':
+        #send CARD then GOTO with players new position
+        if card_value == 'JAIL':
+            print(player.getName() + " is going to jail!")
+            player.updateJailed(True)
+            player.setPosition(8)
+        elif card_value == 'GO':
+            print(player.getName() + " set to go and got " + str(GO_CASH))
+            player.addMoney(GO_CASH)
+            player.setPosition(0)
+        else:
+            player.setPosition(int(card_value))
+
+
     
     
 def takeTurn(player,board):

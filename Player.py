@@ -64,11 +64,9 @@ and property they currently own"""
         property_pair = self.properties[space.getGroup()]
         property_pair[0].remove(space)
         if len(property_pair[0]) == property_pair[1]-1:
-            print("num is:",property_pair[1])
             #player lost set bonus so deactivate it
             print(self.name + " just lost the set bonus for " + space.getGroup())
             for property_space in property_pair[0]:
-                print(property_space)
                 property_space.removeBonus()
         
     def isJailed(self):
