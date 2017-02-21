@@ -47,6 +47,7 @@ class Server:
                 for con in connections:
                     client_sock, address = con.accept()
                     data = loads(client_sock.recv(4096).decode())
+                    print("Data: ",data)
                     try:
                         if data["command"] == "CREATE":
                             action = self.create_game
@@ -65,7 +66,7 @@ class Server:
                         elif data["command"] == "ROLL":
                             action = self.roll
                         elif data["command"] == "GOTO":
-                            action =self.go_to
+                            action = self.go_to
                         elif data["command"] == "PAY":
                             action = self.pay
                         elif data["command"] == "CARD":
@@ -114,14 +115,17 @@ class Server:
 
     def _send_answer(self, data, sock, address):
         sock.sendto(dumps(data).encode(), address)
+        print("Sent")
 
     def _send_answer_tcp(self,data, sock):
         sock.send(dumps(data).encode())
+        print("Sent tcp")
 
     def _push_notification(self,data,exclude=None):
         for sock in self.game["comms"]:
             if sock != exclude:
                 sock.send(dumps(data).encode())
+                print("Sent notification")
 
     """
     <-------------------- CLIENT TO SERVER ------------------------------>
@@ -133,15 +137,15 @@ class Server:
         # called by request handler <function=_handle_broadcast> when
         # incoming message has <var=command> = CREATE
         # Returns: Success / Failure message
-        if len(self.game["players"]):
+        if len(self.game["players"]) < 6:
             self.game["comms"][self.game["top_id"]] = sock
             self.game["comms_rev"][sock] = self.game["top_id"]
             #add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
-            print("=" * 50)
-            print(self.game)
-            print("="*50)
+            #print("=" * 50)
+            #print(self.game)
+            #print("="*50)
             data = {
                 "command": "CREATE",
                 "values": "1",
