@@ -1,0 +1,24 @@
+﻿GO * COLLECT 200€ SALARY AS YOU PASS GO -> * 
+PROPERTY * WATERFORD * 60 * munster * 
+DECK * CHANCE * StandardChanceDeck.txt * 
+PROPERTY * CORK * 60 * munster * 
+TAX * INCOME TAX * 200 * 
+PROPERTY * KERRY * 100 * munster * 
+JAIL * IN JAIL // JUST VISITING *  
+PROPERTY * GALWAY * 140 * connacht * 
+DECK * COMMUNITY CHEST * StandardCommunityChestDeck.txt * 
+PROPERTY * MAYO * 140 * connacht * 
+TAX * ELECTRIC COMPANY * 150 * 
+PROPERTY * SLIGO * 160 * connacht * 
+FREE * FREE PARKING * 
+PROPERTY * DONEGAL * 220 * ulster * 
+TAX * IRISH WATER * 150 * 
+PROPERTY * CAVAN * 220 * ulster * 
+DECK * CHANCE * StandardChanceDeck.txt * 
+PROPERTY * MONAGHAN * 240 * ulster * 
+GOTOJAIL * GO TO JAIL * 
+PROPERTY * MEATH * 300 * leinster * 
+TAX * LUXURY TAX * 75 * 
+PROPERTY * DUBLIN * 300 * leinster * 
+DECK * COMMUNITY CHEST * StandardCommunityChestDeck.txt * 
+PROPERTY * WEXFORD * 320 * leinster * 

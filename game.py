@@ -35,7 +35,7 @@ def game(board_file,num_players):
     print(players[0].getName() + " is the winner! Thanks for playing!")
     
 def test():
-    game("Ireland5x4Monopoly.txt",4)
+    game("Ireland6x4Monopoly.txt",4)
 
 def rollDice(player):
     die1 = random.randint(1,6)
@@ -46,7 +46,7 @@ def rollDice(player):
 def resolveSpace(player,board):
         space = board.getSpace(player.getPosition())
         space_type = space.getType()
-        if  space_type == 'PROPERTY':
+        if  space_type == "PROPERTY":
             #if it's a property we check who owns it and resolve appropiately
             price = int(space.getRent())
             owner_id = space.getOwner()
@@ -61,10 +61,15 @@ def resolveSpace(player,board):
                 print(player.getName() + " just bought '"+ space.getText() +"' for " + str(price) )
                 player.takeMoney(price)
                 player.addProperty(space)
-        elif space_type  == 'DECK':
+        elif space_type == "TAX":
+            #if it's a tax space player pays the fee
+            player.takeMoney(space.getFee())
+            print(player.getName() + " just paid a tax of " + str(space.getFee())) 
+        elif space_type  == "DECK":
+            #if it's a card space draw a card and handle it
             card = space.drawCard()
             handleCard(player,card)
-        elif space_type  == 'GOTOJAIL':
+        elif space_type  == "GOTOJAIL":
             #if the space is go to jail send the player to jail and tell them they are jailed
             print(player.getName() + " is going to jail!")
             player.updateJailed(True)

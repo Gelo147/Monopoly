@@ -1,12 +1,13 @@
 from Space import Space
 from PropertySpace import PropertySpace
+from TaxSpace import TaxSpace
 from DeckSpace import DeckSpace
 from Card import Card
 from Player import Player
 class Board:
     """The representation of the game board where most of the action takes place"""
     def __init__(self,filename,playernames):
-        self._vaildtypes = ["GO","PROPERTY","JAIL","FREE","GOTOJAIL"]
+        self._vaildtypes = ["GO","PROPERTY","JAIL","FREE","GOTOJAIL","DECK","TAX"]
         self._vaildcardtypes = ["COLLECT","BAIL","PAY","GOTO"]
         self._property_sets = {}
         self._spaces = self._makeSpaces(filename)
@@ -44,6 +45,8 @@ class Board:
                             spaces += [deckSpace]
                         else:
                             spaces += [decks[args[1]]]
+                    elif args[0] == "TAX":
+                        spaces += [TaxSpace(args[1],int(args[2]))]
                     elif args[0] in self._vaildtypes:
                         spaces += [Space(args[0],args[1])]
             return spaces
