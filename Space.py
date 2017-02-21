@@ -1,12 +1,12 @@
 class Space:
     """A space is a single spot on the board with unique text"""
     def __init__(self,space_type,text):
-        self.text = text
-        self.type = space_type
+        self._text = text
+        self._type = space_type
 
     def __str__(self):
-        return "[%s]\n" % (self.text)
+        return "[%s]\n" % (self._text)
     def getType(self):
-        return self.type
+        return self._type
     def getText(self):
-        return self.text
+        return self._text

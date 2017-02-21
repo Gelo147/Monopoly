@@ -51,6 +51,7 @@ and property they currently own"""
         return self.properties
     
     def addProperty(self,space):
+        space.setOwner(self.getId())
         property_pair = self.properties[space.getGroup()]
         property_pair[0]+=[space]
         if len(property_pair[0]) == property_pair[1]:

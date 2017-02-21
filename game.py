@@ -60,7 +60,6 @@ def resolveSpace(player,board):
                 #no one owns the space so player auto buys it if funds allow
                 print(player.getName() + " just bought '"+ space.getText() +"' for " + str(price) )
                 player.takeMoney(price)
-                space.setOwner(player.getId())
                 player.addProperty(space)
         elif space_type  == 'DECK':
             card = space.drawCard()
@@ -142,6 +141,4 @@ def removePlayer(player):
     for group in groups:
         for space in groups[group][0]:
             player.removeProperty(space)
-    
-                
-    
+            
