@@ -2,8 +2,8 @@ from Board import Board
 from Player import Player
 import random
 
-GO_CASH = 50
-JAIL_FINE = 200
+GO_CASH = 200
+JAIL_FINE = 50
 
 def game(board_file,num_players):
     #setup
@@ -35,15 +35,18 @@ def game(board_file,num_players):
     print(players[0].getName() + " is the winner! Thanks for playing!")
     
 def test():
+    #run to see a game in action 
     game("text/Ireland6x4Monopoly.txt",4)
 
 def rollDice(player):
+    #rolls two dice seperately and returns a list of the two values
     die1 = random.randint(1,6)
     die2 = random.randint(1,6)
     print(player.getName() + " rolled a "+ str(die1) + " and a " + str(die2) + "!")
     return [die1,die2]
 
 def resolveSpace(player,board):
+    #handles what happens when a player lands on a space
         space = board.getSpace(player.getPosition())
         space_type = space.getType()
         if  space_type == "PROPERTY":
