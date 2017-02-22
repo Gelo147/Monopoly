@@ -35,7 +35,7 @@ def game(board_file,num_players):
     print(players[0].getName() + " is the winner! Thanks for playing!")
     
 def test():
-    game("Ireland6x4Monopoly.txt",4)
+    game("text/Ireland6x4Monopoly.txt",4)
 
 def rollDice(player):
     die1 = random.randint(1,6)
@@ -57,7 +57,7 @@ def resolveSpace(player,board):
                 owner = board.getPlayer(owner_id)
                 owner.addMoney(cost)
                 print(player.getName() + " just paid rent on '"+ space.getText() +"' giving " + owner.getName() + " the amount of " + str(cost)) 
-            elif owner_id is None and player.getBalance() > price:
+            elif owner_id is None and player.getBalance() > cost:
                 #no one owns the space so player auto buys it if funds allow
                 print(player.getName() + " just bought '"+ space.getText() +"' for " + str(cost) )
                 player.takeMoney(cost)
