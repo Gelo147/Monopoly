@@ -24,6 +24,7 @@ class Server:
             "board": Board(),
             "top_id": 0,
             "started": True,
+            "turn": 0
         }
 
         self.discover = Thread(target=self._open_broadcast,
@@ -188,8 +189,7 @@ class Server:
             "command": "JOIN",
             "values": success,
         }
-        self._send_answer_tcp(data, sock)
-        self._push_notification(data,sock)
+        self._push_notification(data)
 
 
     """
@@ -238,26 +238,63 @@ class Server:
         #send goto to all other players
         self.go_to(data,sock)
 
-    def buy(self, values):
+    def buyRequest(self, data, sock):
+        data = {
+            "command": "BUY?",
+            "vales": {}
+        }
+        self._send_answer_tcp(data, sock)
+
+    def buy(self, data, sock):
         # called by request handler <function=_handle_request> when
         # incoming message has <var=command> = BUY
         # 'buys' the property that the player is currently on
         # Returns: Success / Failure message
-        pass
+        if data["values"]["buy"]:
+            player_id = self.game["comms"][sock]
+            player = self.game["board"].getPlayer(player_id)
+            space_id = player.getPosition()
+            space = self.game["board"].getSpace(space_id)
+            if player.getBalance() > space.getPrice()
+                player.addProperty(space)
+                space.setOwner(player_id)
+                out = {
+                    "command": "BOUGHT",
+                    "values": {
+                        "player": player_id,
+                        "tile": space_id
+                    }
+                }
+                self._push_notification(out)
 
-    def sell(self, values):
+    def sell(self, data, sock):
         # called by request handler <function=_handle_request> when
         # incoming message has <var=command> = SELL
         # 'sells' the properties defined in <var=ids> inside <var=values>
         # Returns: PAY message
-        pass
+        player_id = self.game["comms"][sock]
+        player = self.game["board"].getPlayer(player_id)
+        total = 0
+        sold = []
+        for id in data["values"]["tiles"]:
+            space = self.game["board"].getSpace(id)
+            total += space.getPrice()
+            if space.getOwner() == player_id:
+                space.setOwner(None)
+                sold += [id]
+        out = {
+                "command": "SOLD",
+                "values": {
+                    "tiles": sold,
+                    "player": player_id
+            }
+        self._push_notification(out)
 
     def chat(self, data,sock):
         # called by request handler <function=_handle_request> when
         # incoming message has <var=command> = CHAT
         # Sends the message <var=text> that is in <var=values> onto other users,
         # attaching values like username onto the message
-
         # Returns: does not return just passes on ?? <-- NOTE * Not sure yet. * NOTE -->
         data = {
             "command": "CHAT",
@@ -271,11 +308,10 @@ class Server:
     def turn(self, data, sock):
         # send message TURN to all clients
         # informing them of whose turn it is
-        # <-- NOTE * self invoked sometimes?? * NOTE -->
         data = {
             "command":"TURN",
             "values":{
-                "players": "" #where will this be
+                "player": self.game["turn"]
             }
         }
         self._push_notification(data)
@@ -286,9 +322,17 @@ class Server:
         data = {
             "command": "GOTO",
             "player": self.game["comms_rev"][sock],
-            "tile": self.game["board"].move_player(self.game["comms_rev"][sock], sum(data["values"]["roll"]))
+            "tile": self._move_player(self.game["comms_rev"][sock], sum(data["values"]["roll"]))
         }
-        self._push_notification(data,sock)
+        self._push_notification(data)
+
+    def _move_player(self,playerID, spaces):
+        current_space = self.game["board"].getPlayer(playerID)
+        if (current_space + spaces) > self.game["board"].getSize():
+            new_space = (current_space + spaces) - self.game["board"].getSize()
+        else:
+            new_space = current_space + spaces
+        return  new_space
 
     def pay(self, data, sock):
         # transaction between player and player or bank and player if
@@ -306,7 +350,7 @@ class Server:
             self.game["board"].getPlayer(data["values"]["from"]).takeMoney(data["values"]["amount"])
         self. _push_notification(data)
 
-    def card(self, values):
+    def card(self, tile):
         # Comunity Chest / Chance cards
         #
         # {
@@ -316,7 +360,18 @@ class Server:
         #        "is_bail": bool is_bail
         #    }
         # }
-        pass
+        space = self.game["board"].getSpace(tile)
+        card = space.drawCard()
+        out = {
+            "command": "CARD",
+            "values": {
+                "text": card.getText(),
+                "is_bail": card.getType() == "BAIL"
+            }
+        }
+        self._push_notification(out)
+        return card
+
 
 if __name__ == '__main__':
     Server()
