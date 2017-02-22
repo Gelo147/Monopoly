@@ -54,7 +54,7 @@ and property they currently own"""
     
     def addProperty(self,space):
         #sets owner on space and adds it to players collection of properties
-        space.setOwner(self._getId())
+        space.setOwner(self.getId())
         property_pair = self._properties[space.getGroup()]
         property_pair[0]+=[space]
         if len(property_pair[0]) == property_pair[1]:

@@ -2,8 +2,8 @@ from Board import Board
 from Player import Player
 import random
 
-GO_CASH = 200
-JAIL_FINE = 50
+GO_CASH = 50 #These should be swapped on larger board, current values help end game faster
+JAIL_FINE = 200
 
 def game(board_file,num_players):
     #setup
