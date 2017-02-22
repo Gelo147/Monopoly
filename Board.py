@@ -4,6 +4,7 @@ from TaxSpace import TaxSpace
 from DeckSpace import DeckSpace
 from Card import Card
 from Player import Player
+import random
 class Board:
     """The representation of the game board where most of the action takes place"""
     def __init__(self,filename,playernames):
@@ -65,6 +66,8 @@ class Board:
                         deck += [Card(args[0],args[1],True)]
                     elif args[0] in self._vaildcardtypes:
                         deck += [Card(args[0],args[1],args[2])]
+            #need to shuffle deck as it is read from file in same order each time
+            random.shuffle(deck)
             return deck
         except FileNotFoundError:
                 print("Sorry couldn't find file '%s', please make sure it exists" % (filename))
