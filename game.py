@@ -48,18 +48,19 @@ def resolveSpace(player,board):
         space_type = space.getType()
         if  space_type == "PROPERTY":
             #if it's a property we check who owns it and resolve appropiately
-            price = int(space.getRent())
+            cost = int(space.getPrice())
             owner_id = space.getOwner()
             if owner_id is not None and owner_id != player.getId():
                 #someone else owns the space so player pays them
-                player.takeMoney(price)
+                cost = int(space.getRent())
+                player.takeMoney(cost)
                 owner = board.getPlayer(owner_id)
-                owner.addMoney(price)
-                print(player.getName() + " just paid rent on '"+ space.getText() +"' giving " + owner.getName() + " the amount of " + str(price)) 
+                owner.addMoney(cost)
+                print(player.getName() + " just paid rent on '"+ space.getText() +"' giving " + owner.getName() + " the amount of " + str(cost)) 
             elif owner_id is None and player.getBalance() > price:
                 #no one owns the space so player auto buys it if funds allow
-                print(player.getName() + " just bought '"+ space.getText() +"' for " + str(price) )
-                player.takeMoney(price)
+                print(player.getName() + " just bought '"+ space.getText() +"' for " + str(cost) )
+                player.takeMoney(cost)
                 player.addProperty(space)
         elif space_type == "TAX":
             #if it's a tax space player pays the fee

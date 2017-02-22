@@ -18,6 +18,8 @@ class PropertySpace(Space):
     
     def getRent(self):
         return self._price / 4
+    def getPrice(self):
+        return self._price
     
     def getOwner(self):
         return self._owner
