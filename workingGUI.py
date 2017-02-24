@@ -50,7 +50,7 @@ class Wid(Frame):
         #Chat_box
         self.chat_box = st.ScrolledText(self.right_frame, width=30, height=0, undo=True)
         self.chat_box.pack(side="bottom", fill="x", expand=False)
-        self.chat_box.bind("<Return>", self.toLabel)
+        self.chat_box.bind("<Return>", self.toLog)
 
         #Log
         self.log = st.ScrolledText(self.right_frame, width=90, wrap="word", height=50)
@@ -77,7 +77,8 @@ class Wid(Frame):
             else:
                 r -= 1
 
-    def toLabel(self, *args):
+    #Function to add content from chat box to log
+    def toLog(self, *args):
         self.log.config(state="normal")
         if not self.marker:
             text = ">" + self.chat_box.get("1.0", "end-1c")
@@ -90,6 +91,7 @@ class Wid(Frame):
         self.log.config(state="disabled")
         self.chat_box.delete("1.0", END)
 
+    #Creates new window, more functionality in window to come
     def create_window(self):
         toplevel = Toplevel(self)
         toplevel.wm_title("Card __")
