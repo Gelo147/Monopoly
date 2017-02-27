@@ -54,8 +54,8 @@ class Board:
                     elif args[0] == "TAX":
                         spaces += [TaxSpace(args[1],int(args[2]))]
                     elif args[0] == "JAIL":
-		      spaces += [Space(args[0],args[1])]
-		      self._jailspace = len(self._spaces)-1
+                        spaces += [Space(args[0],args[1])]
+                        self._jail_pos = (len(spaces)-1)
                     elif args[0] in self._vaildtypes:
                         spaces += [Space(args[0],args[1])]
             return spaces
@@ -91,17 +91,16 @@ class Board:
       
     def getJailPosition(self):
 	#tells you which space on the board corresponds to jail
-	return self._jail_pos
-                             
+        return self._jail_pos
+    
     def getPlayer(self,player_id):
         #returns the player object with given id
         return self._players[player_id]
       
     def removePlayer(self,player_id):
 	#removes player object from the list of players
-	self._players[player_id] = None
-
+        self._players[player_id] = None
     def getPlayerList(self):
         #returns a copy of the list of players in game
-        player_list = self._players
+        player_list = list(self._players)
         return player_list
