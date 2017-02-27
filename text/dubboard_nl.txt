@@ -1,37 +1,40 @@
-﻿GO * COLLECT 200€ SALARY AS YOU PASS GO -> * 
-PROPERTY * CRUMLIN * 60 * brown *
-  DECK * COMMUNITY CHEST * text/StandardCommunityChestDeck.txt * PROPERTY * KIMMAGE * 60 * brown *
- TAX * INCOME TAX * 200 *
- PROPERTY * BUSARAS * 200 * transport *
-  PROPERTY * RATHGAR * 100 * cyan * 
+GO * COLLECT 200€ SALARY AS YOU PASS GO -> * 
+PROPERTY * CRUMLIN * 60 * brown * 
+DECK * COMMUNITY CHEST * text/StandardCommunityChestDeck.txt * 
+PROPERTY * KIMMAGE * 60 * brown * 
+TAX * INCOME TAX * 200 * 
+PROPERTY * BUSARAS * 200 * transport * 
+PROPERTY * RATHGAR * 100 * cyan * 
 DECK * CHANCE * text/StandardChanceDeck.txt * 
 PROPERTY * SOUTH CIRCULAR ROAD * 100 * cyan * 
-PROPERTY * RATHMINES * 120 * cyan *
- JAIL * IN JAIL // JUST VISITING *
- PROPERTY * DAWSON STREET * 140 * purple *
- PROPERTY * ELECTRIC CO * 150 * transport *
- PROPERTY * KILDARE STREET * 140 * purple *
- PROPERTY * NASSAU STREET * 160 * purple * 
-PROPERTY * DUBLIN AIRPORT * 200 * transport * PROPERTY * PEARSE STREET * 180 * orange * 
+PROPERTY * RATHMINES * 120 * cyan * 
+JAIL * IN JAIL // JUST VISITING * 
+PROPERTY * DAWSON STREET * 140 * purple * 
+PROPERTY * ELECTRIC CO * 150 * transport * 
+PROPERTY * KILDARE STREET * 140 * purple * 
+PROPERTY * NASSAU STREET * 160 * purple * 
+PROPERTY * DUBLIN AIRPORT * 200 * transport * 
+PROPERTY * PEARSE STREET * 180 * orange * 
 DECK * COMMUNITY CHEST * text/StandardCommunityChestDeck.txt * 
 PROPERTY * DAME STREET * 180 * orange * 
-PROPERTY * WESTMORELAND STREET * 200 * orange *
- FREE * FREE PARKING *
- PROPERTY * ABBEY STREET * 220 * red * 
+PROPERTY * WESTMORELAND STREET * 200 * orange * 
+FREE * FREE PARKING * 
+PROPERTY * ABBEY STREET * 220 * red * 
 DECK * CHANCE * text/StandardChanceDeck.txt * 
 PROPERTY * CAPEL STREET * 220 * red * 
-PROPERTY * HENRY STREET * 240 *  red *
- PROPERTY * HEUSTON STATION * 200 * transport *
- PROPERTY * TALBOT STREET * 260 * yellow * 
-PROPERTY * NORTH EARL STREET * 260 * yellow * 
-PROPERTY * WATERWORKS * 150 * utility * PROPERTY * O'CONNELL STREET * 280 * yellow * 
+PROPERTY * HENRY STREET * 240 *  red * 
+PROPERTY * HEUSTON STATION * 200 * transport * 
+PROPERTY * TALBOT STREET * 260 * yellow * 
+PROPERTY * NORTH EARL STREET * 260 * yellow *  
+PROPERTY * WATERWORKS * 150 * utility * 
+PROPERTY * O'CONNELL STREET * 280 * yellow * 
 GOTOJAIL * GO TO JAIL * 
-PROPERTY * GEORGES STREET * 300 * green *
- PROPERTY * WICKLOW STREET * 300 * green * 
-DECK * COMMUNITY CHEST * text/StandardCommunityChestDeck.txt *
- PROPERTY * GRAFTON STREET * 320 * green * 
+PROPERTY * GEORGES STREET * 300 * green * 
+PROPERTY * WICKLOW STREET * 300 * green * 
+DECK * COMMUNITY CHEST * text/StandardCommunityChestDeck.txt * 
+PROPERTY * GRAFTON STREET * 320 * green * 
 PROPERTY * SHANNON AIRPORT * 200 * transport * 
 DECK * CHANCE * text/StandardChanceDeck.txt * 
-PROPERTY * AILESBURY ROAD * 350 * blue *
- TAX * SUPER TAX * 200 * 
+PROPERTY * AILESBURY ROAD * 350 * blue * 
+TAX * SUPER TAX * 200 * 
 PROPERTY * SHREWSBURY ROAD * 400 * blue * 
