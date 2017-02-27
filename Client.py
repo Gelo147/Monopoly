@@ -40,7 +40,7 @@ class Client:
             sock_create.close()
 
     def _transmit(self, transmit_port):
-        # to be run in a thread and handle outgoing messages to server
+        # to be run in a thread and handle outgoing messages to specific server
         pass
 
     def _broadcast(self):
