@@ -1,0 +1,9 @@
+GOTO | Advance to Go - Collect 200 | GO | 
+GOTO | Advance to space 6 | 6 | //12 on full board
+GOTO | Advance to space 12 | 12 | //27 on full board
+COLLECT | Bank pays you dividend of 50 | 50 | 
+BAIL | Get out of Jail, Free | 
+GOTO | Go directly to jail - Do NOT pass Go - Do not collect 200 | JAIL | 
+PAY | Pay poor tax of 15 | 15 | 
+COLLECT | Your building and loan matures - Collect 150 | 150 | 
+COLLECT | You have won a crossword competition - Collect 100 | 100 | 

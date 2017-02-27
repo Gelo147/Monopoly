@@ -1,0 +1,17 @@
+GO * COLLECT 200€ SALARY AS YOU PASS GO -> * 
+PROPERTY * WATERFORD * 60 * munster * 
+PROPERTY * CORK * 60 * munster * 
+PROPERTY * KERRY * 100 * munster * 
+JAIL * IN JAIL // JUST VISITING *  
+PROPERTY * GALWAY * 140 * connacht * 
+PROPERTY * MAYO * 140 * connacht * 
+PROPERTY * SLIGO * 160 * connacht * 
+FREE * FREE PARKING * 
+PROPERTY * DONEGAL * 220 * ulster * 
+PROPERTY * CAVAN * 220 * ulster * 
+PROPERTY * MONAGHAN * 240 * ulster * 
+GOTOJAIL * GO TO JAIL * 
+PROPERTY * MEATH * 300 * leinster * 
+PROPERTY * DUBLIN * 300 * leinster * 
+PROPERTY * WEXFORD * 320 * leinster * 
+
