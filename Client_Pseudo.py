@@ -1,7 +1,7 @@
 import socket
 import json
 from select import select
-from
+
 
 class TestServer:
     b_port = 44470
@@ -22,7 +22,7 @@ class TestServer:
             print(data["command"])
         s.close()
 
-    def test_create(self):
+    def test_join(self):
         s1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s1.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s2 = socket.socket()
@@ -34,8 +34,15 @@ class TestServer:
             s2.connect((addr[0], 44469))
             data = json.loads(data.decode())
             print(data)
-        data = json.dumps(({"command": "CREATE", "values": {"username": "player1"}}))
-        s2.sendall(data.encode())
+        data = json.dumps(({"command": "JOIN", "values": {"username": "player1"}}))
+        data = s2.sendall(data.encode())
+        print("DATA: ",data)
+        data = None
+        while not data:
+            data = s2.recv(1024).decode()
+            if data:
+                print(json.loads(data))
+        print("sent join")
         poll = json.dumps({"command": "POLL"})
         s1.sendto(poll.encode(), ("255.255.255.255", 44470))
         print("sent poll")
@@ -44,22 +51,14 @@ class TestServer:
             data, addr = s1.recvfrom(1024)
             data = json.loads(data.decode())
             print(data)
-        data = json.dumps(({"command": "CREATE", "values": {"username": "player1"}}))
+        data = json.dumps(({"command": "START", "values": {"username": "player1"}}))
         s2.sendall(data.encode())
         data = None
-        while data == None:
-            try:
-                connections, write, exception = select([s2], [], [], 0.05)
-                for con in connections:
-                    client_sock, address = con.accept()
-                    data = loads(client_sock.recv(4096).decode())
-                    print(data)
-            except timeout:
-                pass
+
         s1.close()
         s2.close()
 x = TestServer()
-x.test_create()
+x.test_join()
 """
 s1 = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 s1.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
