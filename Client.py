@@ -20,6 +20,7 @@ class Client:
         self.transmitter = Thread(target=self._transmit, args=(self.TRANSMIT_PORT))
         self.transmitter.start()
         self._board = Board(self.BOARD_FILE, {0: "player 0", 1: "player 1", 2: "player 2", 3: "player 3"})
+        self._local = Board.getPlayer(0)
 
     def create(self, username, password):
         # inform the server we wish to create a game
@@ -71,6 +72,21 @@ class Client:
         new_inmate = Board.getPlayer(data["player"])
         new_inmate.updateJailed(True)
 
-    def
+    def _sentchat(self,data):
+        # send a message from the server to the textbox display
+        sent_by = data["player"]
+        message = data["message"]
+        if sent_by not None:
+            message = sent_by + ": " + message
+        print(message) #change to send chat for GUI?
+
+    def _drewCard(self,data):
+        # you drew a card so tell the GUI about it and check if you're on bail
+        card_text = data["text"]
+        bail_status = data["is_bail"]
+        if bail_status:
+            self._local.updateBail(bail_status)
+        self._sentchat({"player":None,"message":"You drew the following card: " + card_text})
+
 
 
