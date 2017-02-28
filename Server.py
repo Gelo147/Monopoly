@@ -159,11 +159,16 @@ class Server:
             "command": "GAME",
             "values": {
                 "game": {
-                    "name": self.game["name"],
-                    "players": [player for player in self.game["players"]]
+                    "name": None,
+                    "players": None
                 }
             }
         }
+        if len(self.game["players"]) > 0:
+            data["game"] = {
+                "name": self.game["name"],
+                "players": [player for player in self.game["players"]]
+            }
         self._send_answer(data, sock, address)
 
     def join_game(self, data, sock):
