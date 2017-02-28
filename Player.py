@@ -78,9 +78,9 @@ and property they currently own"""
         #check players jail status
         return self._jailed
     
-    def updateJailed(self,jail_status):
-        #Takes in a boolean which states if player is jailed or not
-        self._jailed = jail_status
+    def updateJailed(self):
+        # Changes player to go in or out of jail
+        self._jailed = not self._jailed
         
     def isBankrupt(self):
         #check if the current player is bankrupt
