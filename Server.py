@@ -1,6 +1,6 @@
 from socket import *
 from json import dumps, loads
-from threading import Thread
+from threading import Thread, Timer
 from random import randint
 from select import select
 from Board import Board
@@ -11,12 +11,11 @@ class Server:
     BROADCAST_PORT = 44470
     SERVICE_PORT = 44469
     BOARD_FILE  = "board.txt"
+    CLIENT_DECISION_TIME = 60
     def __init__(self, broadcast_port=None, service_port=None):
-
+        self._timeout = False
         self.connection_queue = Queue()
-        # <---------- NOTE ---------->
-        # Does the Board object store Payer objects?
-        # <---------- NOTE ---------->
+        self.timer = Timer(60, self.time)
         self.game = {
             "name": "Monopoly",
             "players": [],  # player names
@@ -44,7 +43,6 @@ class Server:
     def _open_service(self, port):
         self.service_sock = socket()
         self.service_sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        # self.service_sock.setblocking(0)
         self.service_sock.bind(('', port))
         self.service_sock.listen(10)
         print("Service Listening")
@@ -335,11 +333,12 @@ class Server:
             pass #error
 
     def _waitResponse(self, command, sock):
-        while True:
+        while not self._timeout:
             message = self.connection_queue.get()
             if message:
                 if sock == message[1] and message[0]["command"] == command:
                     return message
+        return "timeout"
 
     def _buy(self, space, player):
         player.addProperty(space)
@@ -537,36 +536,46 @@ class Server:
         self._push_notification(data)
         self.game["board"].getPlayer(pid).updateJailed()
 
+    def time(self):
+        print("Timeout")
+        self._timeout = True
+
     def _playGame(self):
         while True:
             try:
                 if (not self.game["last_action"]["rolled"]) and (self.game["comms"][self.game["turn"]] is not None):
                     sentToJail = False
                     self.turn(None, None)
-                    out = self._waitResponse("ROLL", self.game["comms"][self.game["turn"]] )
-                    roll = self.roll({}, self.game["comms"][self.game["turn"]])
-                    if roll[0] == roll[1]:
-                        if self.game["last_action"]["doubles"] == 3:
-                            self.sendJail(self.game["comms"][self.game["turn"]])
-                            sentToJail = True
-                            self.game["last_action"]["rolled"] = True
+                    self.timer.start()
+                    out = self._waitResponse("ROLL", self.game["comms"][self.game["turn"]])
+                    if out == "timeout":
+                        self._timeout = False
+                        self.game["last_action"]["rolled"] = False
+                        self.game["turn"] += 1
+                        self.game["last_action"]["last_roll"] = []
+                    else:
+                        roll = self.roll({}, self.game["comms"][self.game["turn"]])
+                        if roll[0] == roll[1]:
+                            if self.game["last_action"]["doubles"] == 3:
+                                self.sendJail(self.game["comms"][self.game["turn"]])
+                                sentToJail = True
+                                self.game["last_action"]["rolled"] = True
+                            else:
+                                self.game["last_action"]["rolled"] = False
                         else:
-                            self.game["last_action"]["rolled"] = False
-                    else:
-                        self.game["last_action"]["rolled"] = True
-                    if not sentToJail:
-                        data = {"command": "GOTO", "values": {"roll": roll}}
-                        self.go_to(data, self.game["comms"][self.game["turn"]])
-                    else:
-                        data = {"command": "GOTO", "values": "JAIL"}
-                        self.go_to(data, self.game["comms"][self.game["turn"]])
+                            self.game["last_action"]["rolled"] = True
+                        if not sentToJail:
+                            data = {"command": "GOTO", "values": {"roll": roll}}
+                            self.go_to(data, self.game["comms"][self.game["turn"]])
+                        else:
+                            data = {"command": "GOTO", "values": "JAIL"}
+                            self.go_to(data, self.game["comms"][self.game["turn"]])
                 else:
                     self.game["last_action"]["rolled"] = False
                     self.game["turn"] += 1
                     self.game["last_action"]["last_roll"] = []
             except Exception as e:
                 print(e)
-
 
 if __name__ == '__main__':
     Server()
