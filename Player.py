@@ -13,6 +13,8 @@ and property they currently own"""
         self._properties = copy.deepcopy(property_sets)
         self._bankrupt = False
         self._jailed = False
+        self._on_bail = False
+        
     def __str__(self):
         #describes the player in plain text
         return self._name
@@ -93,9 +95,17 @@ and property they currently own"""
 
 =======
     
-    def updateJailed(self,jail_status):
-        #Takes in a boolean which states if player is jailed or not
-        self._jailed = jail_status
+    def updateJailed(self):
+        # Changes player to go in or out of jail
+        self._jailed = not self._jailed
+        
+    def hasBail(self):
+        # check players jail status
+        return self._on_bail
+
+    def updateBail(self, bail_status):
+        # Takes in a boolean which states if player is jailed or not
+        self._on_bail = bail_status
         
 >>>>>>> parent of 000849b... Reformatted, added bail attribute and methods
     def isBankrupt(self):

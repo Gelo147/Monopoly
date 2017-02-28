@@ -1,6 +1,6 @@
 from socket import *
 from json import dumps, loads
-from threading import Thread
+from threading import Thread, Timer
 from random import randint
 from select import select
 from Board import Board
@@ -11,12 +11,11 @@ class Server:
     BROADCAST_PORT = 44470
     SERVICE_PORT = 44469
     BOARD_FILE  = "board.txt"
+    CLIENT_DECISION_TIME = 60
     def __init__(self, broadcast_port=None, service_port=None):
-
+        self._timeout = False
         self.connection_queue = Queue()
-        # <---------- NOTE ---------->
-        # Does the Board object store Payer objects?
-        # <---------- NOTE ---------->
+        self.timer = Timer(60, self.time)
         self.game = {
             "name": "Monopoly",
             "players": [],  # player names
@@ -24,7 +23,7 @@ class Server:
             "comms_rev": {},  # id: socket map
             "board": None,
             "top_id": 0,
-            "started": True,
+            "started": False,
             "turn": 0,
             "last_action": {
                 "rolled": False,
@@ -44,7 +43,6 @@ class Server:
     def _open_service(self, port):
         self.service_sock = socket()
         self.service_sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        # self.service_sock.setblocking(0)
         self.service_sock.bind(('', port))
         self.service_sock.listen(10)
         print("Service Listening")
@@ -73,7 +71,7 @@ class Server:
                             raise StupidException()
                         action(data,client_sock)
                     except Exception as e:
-                        print("TCP Error 1 ",e)
+                        print("TCP Error 1 ", e)
                         client_sock.close()
             except timeout:
                 pass
@@ -81,28 +79,7 @@ class Server:
                 pass
             except Exception as e:
                 print("TCP Error 2 ",e)
-    """
-----------------NOTE will use somewhere NOTE ---------------------------------------------
-    def validate_action(self, data, client_sock):
-        if self.game["turn"] == self.game["comms"][client_sock]:
-            if data["command"] == "ROLL" and not self.game["rolled"]:
-                action = self.roll
-            elif data["command"] == "BUY":
-                action = self.buy
-            elif data["command"] == "SELL":
-                action = self.sell
-            elif data["command"] == "ROLL":
-                action = self.roll
-            elif data["command"] == "GOTO":
-                action = self.go_to
-            elif data["command"] == "PAY":
-                action = self.pay
-            elif data["command"] == "CARD":
-                action = self.card
-            else:
-                action = self.broadcast_error
-------------------------------------------------------------------------------------------------
-    """
+
     def _open_broadcast(self, broadcast_port):
         broadcastsock = socket(AF_INET, SOCK_DGRAM)
         broadcastsock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
@@ -136,13 +113,13 @@ class Server:
         print("Sent")
 
     def _send_answer_tcp(self,data, sock):
-        sock.send(dumps(data).encode())
+        sock.sendall(dumps(data).encode())
         print("Sent tcp")
 
     def _push_notification(self,data,exclude=None):
-        for sock in self.game["comms"]:
+        for sock in self.game["comms_rev"]:
             if sock != exclude:
-                sock.send(dumps(data).encode())
+                sock.sendall(dumps(data).encode())
                 print("Sent notification")
 
     """
@@ -155,23 +132,20 @@ class Server:
         # called by request handler <function=_handle_broadcast> when
         # incoming message has <var=command> = CREATE
         # Returns: Success / Failure message
-        if len(self.game["players"]) < 6:
+        if len(self.game["players"]) < 1:
             self.game["comms"][self.game["top_id"]] = sock
             self.game["comms_rev"][sock] = self.game["top_id"]
             #add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
-            #print("=" * 50)
-            #print(self.game)
-            #print("="*50)
             data = {
                 "command": "CREATE",
-                "values": "1",
+                "values": "0"
             }
         else:
             data = {
-                "command": "ERROR",
-                "values": "Game already created try joining",
+                "command": "CREATE",
+                "values": "1",
             }
         self._send_answer_tcp(data,sock)
 
@@ -183,11 +157,16 @@ class Server:
             "command": "GAME",
             "values": {
                 "game": {
-                    "name": self.game["name"],
-                    "players": [player for player in self.game["players"]]
+                    "name": None,
+                    "players": None
                 }
             }
         }
+        if len(self.game["players"]) > 0:
+            data["game"] = {
+                "name": self.game["name"],
+                "players": [player for player in self.game["players"]]
+            }
         self._send_answer(data, sock, address)
 
     def join_game(self, data, sock):
@@ -202,6 +181,7 @@ class Server:
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
             success = 1
+            print(">>>>JOIN : ", self.game["players"])
         data = {
             "command": "JOIN",
             "values": success,
@@ -249,13 +229,13 @@ class Server:
         # Returns: ROLL message
         data = {
             "command": "ROLL",
-            "values":{
-                "roll": [randint(1,7), randint(1,7)],
+            "values": {
+                "roll": [randint(1, 7), randint(1, 7)],
             }
         }
         self.game["last_action"]["rolled"] = True
         self.game["last_action"]["last_roll"] = data["values"]["roll"]
-        self._send_answer_tcp(data,sock)
+        self._push_notification(data)
         return data["values"]["roll"]
 
     def buyRequest(self, data, sock):
@@ -286,6 +266,9 @@ class Server:
         self.pay(data, sock)
 
     def _proccess_position(self, tile, sock):
+        if tile == -1:
+            tile = self.game["board"].getJailposition()
+
         board = self.game["board"]
         space = board.getSpace(tile)
         what = space.getType()
@@ -297,8 +280,8 @@ class Server:
             # send CARD mesage to clients
             # ----------------------------------------------
             card = {
-                "text":str(space)
-                "is_bail"
+                "text":str(space),
+                "is_bail": space.getValue(),
             }
             data = {"command": "CARD", "values": card}
             self._push_notification(data)
@@ -307,7 +290,7 @@ class Server:
         elif what == "PROPERTY":
             self._onPropertySpace(space,sock)
         elif what == "GOTOJAIL":
-            pass
+            self.sendJail(sock)
         elif what == "TAX" or what == "PAY":
             data = {"command": "PAY",
                     "values": {
@@ -340,7 +323,7 @@ class Server:
             where = space.getValue()
             data = {"values": {}}
             if where == "JAIL":
-                pass
+                self.sendJail(sock)
             elif where == "GO":
                 data["values"]["tile"] = 0
             else:
@@ -350,11 +333,12 @@ class Server:
             pass #error
 
     def _waitResponse(self, command, sock):
-        while True:
+        while not self._timeout:
             message = self.connection_queue.get()
             if message:
                 if sock == message[1] and message[0]["command"] == command:
                     return message
+        return "timeout"
 
     def _buy(self, space, player):
         player.addProperty(space)
@@ -456,10 +440,16 @@ class Server:
                 "tile": None
             }
         }
+        p = self.game["board"].getPlayer(self.game["comms"][sock])
         if "roll" in data["values"]:
             d["values"]["tile"] = self._move_player(self.game["comms_rev"][sock], sum(data["values"]["roll"]))
+            p.setPosition(d["values"]["tile"])
+        elif "jail" in data["values"]:
+            d["values"]["tile"] = -1
+            p.setPosition(self.game["board"].getJailPosition())
         else:
             d["values"]["tile"] = data["values"]["tile"]
+
         self._push_notification(d)
         self._proccess_position(d["tile"], sock)
 
@@ -478,6 +468,7 @@ class Server:
         if data["values"]["from"]:
             self.game["board"].getPlayer(data["values"]["from"]).takeMoney(data["values"]["amount"])
         self. _push_notification(data)
+
 
     def sell(self, data, sock):
         # called by request handler <function=_handle_request> when
@@ -534,33 +525,57 @@ class Server:
         self._push_notification(out)
         return card
 
+
+    def sendJail(self, sock):
+        pid = self.game["comms"][sock]
+        data = {"command": "JAIL",
+                "values": {
+                    "player": pid
+                    }
+                }
+        self._push_notification(data)
+        self.game["board"].getPlayer(pid).updateJailed()
+
+    def time(self):
+        print("Timeout")
+        self._timeout = True
+
     def _playGame(self):
         while True:
             try:
                 if (not self.game["last_action"]["rolled"]) and (self.game["comms"][self.game["turn"]] is not None):
                     sentToJail = False
-                    roll = self.roll({}, self.game["comms"][self.game["turn"]])
-                    if roll[0] == roll[1]:
-                        if self.game["last_action"]["doubles"] == 3:
-                            # 3 doubles == JAIL
-                            #       NOTE
-                            # SEND PLAYER TO JAIL
-                            sentToJail = True
-                            self.game["last_action"]["rolled"] = True
-                        else:
-                            self.game["last_action"]["rolled"] = False
+                    self.turn(None, None)
+                    self.timer.start()
+                    out = self._waitResponse("ROLL", self.game["comms"][self.game["turn"]])
+                    if out == "timeout":
+                        self._timeout = False
+                        self.game["last_action"]["rolled"] = False
+                        self.game["turn"] += 1
+                        self.game["last_action"]["last_roll"] = []
                     else:
-                        self.game["last_action"]["rolled"] = True
-                    if not sentToJail:
-                        data = {"command": "GOTO", "values": {"roll": roll}}
-                        self.go_to(data, self.game["comms"][self.game["turn"]])
+                        roll = self.roll({}, self.game["comms"][self.game["turn"]])
+                        if roll[0] == roll[1]:
+                            if self.game["last_action"]["doubles"] == 3:
+                                self.sendJail(self.game["comms"][self.game["turn"]])
+                                sentToJail = True
+                                self.game["last_action"]["rolled"] = True
+                            else:
+                                self.game["last_action"]["rolled"] = False
+                        else:
+                            self.game["last_action"]["rolled"] = True
+                        if not sentToJail:
+                            data = {"command": "GOTO", "values": {"roll": roll}}
+                            self.go_to(data, self.game["comms"][self.game["turn"]])
+                        else:
+                            data = {"command": "GOTO", "values": "JAIL"}
+                            self.go_to(data, self.game["comms"][self.game["turn"]])
                 else:
                     self.game["last_action"]["rolled"] = False
                     self.game["turn"] += 1
                     self.game["last_action"]["last_roll"] = []
             except Exception as e:
                 print(e)
-
 
 if __name__ == '__main__':
     Server()
