@@ -79,7 +79,6 @@ and property they currently own"""
     def isJailed(self):
         #check players jail status
         return self._jailed
-<<<<<<< HEAD
 
     def updateJailed(self):
         # Changes player to go in or out of jail
@@ -93,21 +92,6 @@ and property they currently own"""
         # Takes in a boolean which states if player is jailed or not
         self._on_bail = bail_status
 
-=======
-    
-    def updateJailed(self):
-        # Changes player to go in or out of jail
-        self._jailed = not self._jailed
-        
-    def hasBail(self):
-        # check players jail status
-        return self._on_bail
-
-    def updateBail(self, bail_status):
-        # Takes in a boolean which states if player is jailed or not
-        self._on_bail = bail_status
-        
->>>>>>> parent of 000849b... Reformatted, added bail attribute and methods
     def isBankrupt(self):
         #check if the current player is bankrupt
         return self._bankrupt
