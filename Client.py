@@ -15,6 +15,13 @@ class Client:
     def __init__(self):
         # setup the client
         self._connection_queue = Queue()
+<<<<<<< HEAD
+=======
+        self._broadcaster = Thread(target=self._broadcast, args=(self.BROADCAST_PORT))
+        self._broadcaster.start()
+        self.transmitter = Thread(target=self._transmit, args=(self.TRANSMIT_PORT))
+        self.transmitter.start()
+>>>>>>> parent of 000849b... Reformatted, added bail attribute and methods
 
         self._socket = None
         self._transmitter = Thread(target=self.addToQueue, args=())
@@ -86,6 +93,7 @@ class Client:
         # to be run in a thread and handle outgoing messages to specific server
         pass
 
+<<<<<<< HEAD
     def addToQueue(self):
         while True:
             data = None
@@ -163,3 +171,8 @@ class Client:
 if __name__ == '__main__':
     c = Client()
     c.test()
+=======
+    def _broadcast(self):
+        # to be run in a thread and handle broadcast messages to find server(s)
+        pass
+>>>>>>> parent of 000849b... Reformatted, added bail attribute and methods
