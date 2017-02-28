@@ -142,12 +142,12 @@ class Server:
             self.game["top_id"] += 1
             data = {
                 "command": "CREATE",
-                "values": "1",
+                "values": "0"
             }
         else:
             data = {
-                "command": "ERROR",
-                "values": "Game already created try joining",
+                "command": "CREATE",
+                "values": "1",
             }
         self._send_answer_tcp(data,sock)
 
@@ -226,13 +226,13 @@ class Server:
         # Returns: ROLL message
         data = {
             "command": "ROLL",
-            "values":{
-                "roll": [randint(1,7), randint(1,7)],
+            "values": {
+                "roll": [randint(1, 7), randint(1, 7)],
             }
         }
         self.game["last_action"]["rolled"] = True
         self.game["last_action"]["last_roll"] = data["values"]["roll"]
-        self._send_answer_tcp(data,sock)
+        self._push_notification(data)
         return data["values"]["roll"]
 
     def buyRequest(self, data, sock):
@@ -287,7 +287,7 @@ class Server:
         elif what == "PROPERTY":
             self._onPropertySpace(space,sock)
         elif what == "GOTOJAIL":
-            pass
+            self.sendJail(sock)
         elif what == "TAX" or what == "PAY":
             data = {"command": "PAY",
                     "values": {
@@ -320,7 +320,7 @@ class Server:
             where = space.getValue()
             data = {"values": {}}
             if where == "JAIL":
-                pass
+                self.sendJail(sock)
             elif where == "GO":
                 data["values"]["tile"] = 0
             else:
@@ -465,6 +465,7 @@ class Server:
             self.game["board"].getPlayer(data["values"]["from"]).takeMoney(data["values"]["amount"])
         self. _push_notification(data)
 
+
     def sell(self, data, sock):
         # called by request handler <function=_handle_request> when
         # incoming message has <var=command> = SELL
@@ -520,17 +521,28 @@ class Server:
         self._push_notification(out)
         return card
 
+
+    def sendJail(self, sock):
+        pid = self.game["comms"][sock]
+        data = {"command": "JAIL",
+                "values": {
+                    "player": pid
+                    }
+                }
+        self._push_notification(data)
+        self.game["board"].getPlayer(pid).updateJailed()
+
     def _playGame(self):
         while True:
             try:
                 if (not self.game["last_action"]["rolled"]) and (self.game["comms"][self.game["turn"]] is not None):
                     sentToJail = False
+                    self.turn(None, None)
+                    out = self._waitResponse("ROLL", self.game["comms"][self.game["turn"]] )
                     roll = self.roll({}, self.game["comms"][self.game["turn"]])
                     if roll[0] == roll[1]:
                         if self.game["last_action"]["doubles"] == 3:
-                            # 3 doubles == JAIL
-                            #       NOTE
-                            # SEND PLAYER TO JAIL
+                            self.sendJail(self.game["comms"][self.game["turn"]])
                             sentToJail = True
                             self.game["last_action"]["rolled"] = True
                         else:
