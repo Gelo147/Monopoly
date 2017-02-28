@@ -19,6 +19,7 @@ class Client:
         self._broadcaster.start()
         self.transmitter = Thread(target=self._transmit, args=(self.TRANSMIT_PORT))
         self.transmitter.start()
+        self._board = Board(self.BOARD_FILE, {0: "player 0", 1: "player 1", 2: "player 2", 3: "player 3"})
 
     def create(self, username, password):
         # inform the server we wish to create a game
@@ -46,3 +47,30 @@ class Client:
     def _broadcast(self):
         # to be run in a thread and handle broadcast messages to find server(s)
         pass
+
+    def _bought(self, data):
+        # update the owner of some space in board to be player with given id
+        player = Board.getPlayer(data["player_id"])
+        space = Board.getSpace(data["tile"])
+        player.addProperty(space)
+
+    def _paid(self, data):
+        # update one or two players balances as they have changed
+        player_from = (data["player_from"])
+        player_to = (data["player_to"])
+        amount = (data["amount"])
+        if player_from is not None:
+            player = Board.getPlayer(player_from)
+            player.takeMoney(amount)
+        if player_to is not None:
+            player = Board.getPlayer(player_to)
+            player.addMoney(amount)
+
+    def _jailed(self,data):
+        # some player got sent to jail so change their jail status
+        new_inmate = Board.getPlayer(data["player"])
+        new_inmate.updateJailed(True)
+
+    def
+
+
