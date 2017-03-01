@@ -15,7 +15,10 @@ class Client:
     def __init__(self):
         # setup the client
         self._connection_queue = Queue()
-
+        self._broadcaster = Thread(target=self._broadcast, args=(self.BROADCAST_PORT))
+        self._broadcaster.start()
+        self.transmitter = Thread(target=self._transmit, args=(self.TRANSMIT_PORT))
+        self.transmitter.start()
         self._socket = None
         self._transmitter = Thread(target=self.addToQueue, args=())
         self._open_games = []
@@ -47,8 +50,7 @@ class Client:
     def test(self):
         address = self.poll()
         self.join(address, "conortwo", "psswd")
-
-
+        
     def poll(self):
         s = socket(AF_INET, SOCK_DGRAM)
         s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
@@ -86,8 +88,17 @@ class Client:
     def _transmit(self, transmit_port):
         # to be run in a thread and handle outgoing messages to specific server
         pass
-
-
+    
+    def addToQueue(self):
+        while True:
+            data = None
+            while not data and self._socket:
+                data = self._socket.recv(1024).decode()
+            self._connection_queue.put(data)
+    
+    
+    """Methods which handle server messages below"""
+    
     def _newGame(self, data):
         # handles a GAME message from the server by adding it to the list of open games
         playernames = data["game"]["players"]
@@ -108,17 +119,50 @@ class Client:
         player_id = data["player"]
 
     # Gui.newTurn(player_id)
-
     def _hasQuit(self, data):
         quitter = (data["player"])
         self._board.removePlayer(quitter)
 
-    def addToQueue(self):
-        while True:
-            data = None
-            while not data and self._socket:
-                data = self._socket.recv(1024).decode()
-            self._connection_queue.put(data)
+    def _bought(self, data):
+        # update the owner of some space in board to be player with given id
+        player = Board.getPlayer(data["player_id"])
+        space = Board.getSpace(data["tile"])
+        player.addProperty(space)
+
+    def _paid(self, data):
+        # update one or two players balances as they have changed
+        player_from = (data["player_from"])
+        player_to = (data["player_to"])
+        amount = (data["amount"])
+        if player_from is not None:
+            player = Board.getPlayer(player_from)
+            player.takeMoney(amount)
+        if player_to is not None:
+            player = Board.getPlayer(player_to)
+            player.addMoney(amount)
+
+    def _jailed(self,data):
+        # some player got sent to jail so change their jail status
+        new_inmate = Board.getPlayer(data["player"])
+        new_inmate.updateJailed(True)
+        
+    def _sentchat(self, data):
+        # send a message from the server to the textbox display
+        sent_by = data["player"]
+        message = data["message"]
+        if sent_by is not None:
+            message = sent_by + ": " + message
+        print(message)  # change to send chat for GUI?
+
+    def _drewCard(self, data):
+        # you drew a card so tell the GUI about it and check if you're on bail
+        card_text = data["text"]
+        bail_status = data["is_bail"]
+        if bail_status:
+            self._local.updateBail(bail_status)
+        self._sentchat({"player": None, "message": "You drew the following card: " + card_text})
+
+
 if __name__ == '__main__':
     c = Client()
     c.test()
