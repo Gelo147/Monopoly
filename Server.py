@@ -374,18 +374,22 @@ class Server:
             # send BUY?
             self.buyRequest(None, sock)
             # wait for response
-            message = self._waitResponse("BUY", sock)
-            if message[0]["values"]["buy"]:
-                data = {
-                    "command": "PAY",
-                    "values": {
-                        "from": player.getId(),
-                        "to": None,
-                        "ammount": cost
+            self.timer.start()
+            out = self._waitResponse("BUY", sock)
+            if out = "timeout":
+                self._timeout = False
+            else:
+                if message[0]["values"]["buy"]:
+                    data = {
+                        "command": "PAY",
+                        "values": {
+                            "from": player.getId(),
+                            "to": None,
+                            "ammount": cost
+                        }
                     }
-                }
-                self.pay(data, None)
-                self.buy(space, player)
+                    self.pay(data, None)
+                    self.buy(space, player)
         else:
             #future possability of buying houses if you land on that space??
             pass
