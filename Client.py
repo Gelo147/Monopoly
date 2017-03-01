@@ -15,10 +15,7 @@ class Client:
     def __init__(self):
         # setup the client
         self._connection_queue = Queue()
-        self._broadcaster = Thread(target=self._broadcast, args=(self.BROADCAST_PORT))
-        self._broadcaster.start()
-        self.transmitter = Thread(target=self._transmit, args=(self.TRANSMIT_PORT))
-        self.transmitter.start()
+
         self._socket = None
         self._transmitter = Thread(target=self.addToQueue, args=())
         self._open_games = []
@@ -61,8 +58,6 @@ class Client:
             data, addr = s.recvfrom(1024)
             data = json.loads(data.decode())
             print(data)
-            assert data["command"] == "GAME"
-            assert data["values"]["game"]["name"] == "Monopoly"
             print(data["command"])
         s.close()
         return addr[0]
@@ -85,9 +80,6 @@ class Client:
         # returns a list of games client has heard about
         return self._open_games
 
-    def _transmit(self, transmit_port):
-        # to be run in a thread and handle outgoing messages to specific server
-        pass
     
     def addToQueue(self):
         while True:
