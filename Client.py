@@ -57,9 +57,6 @@ class Client:
             data, addr = s.recvfrom(1024)
             data = json.loads(data.decode())
             print(data)
-            assert data["command"] == "GAME"
-            assert data["values"]["game"]["name"] == "Monopoly"
-            print(data["command"])
         s.close()
         return addr[0]
 
@@ -72,7 +69,7 @@ class Client:
         print("DATA: ", data)
         data = None
         while not data:
-            data = sock_join.recv(1024).decode()
+            data = json.loads(sock_join.recv(1024).decode())
             if data and data["command"] == "JOIN" and data["values"] == 1:
                 self._socket = sock_join
                 self._transmitter.start()

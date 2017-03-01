@@ -140,12 +140,12 @@ class Server:
             self.game["top_id"] += 1
             data = {
                 "command": "CREATE",
-                "values": "0"
+                "values": "1"
             }
         else:
             data = {
                 "command": "CREATE",
-                "values": "1",
+                "values": "0",
             }
         self._send_answer_tcp(data,sock)
 
@@ -204,14 +204,19 @@ class Server:
                     "command": "START",
                     "values": {
                         "players": self.game["players"],
+                        "local": None
                     }
                 }
+                for socket in self.game["comms"].keys():
+                    data["values"]["local"] = self.game["comms"][socket]
+                    self._send_answer_tcp(data,socket)
                 self._playGame()
             else:
                 data = {
                     "command": "ERROR",
                     "values": "You can't play on your own."
                 }
+                self._push_notification(data)
         else:
             data = {
                 "command": "CHAT",
@@ -220,7 +225,7 @@ class Server:
                     "player": self.game["players"][self.game["comms"][sock]]
                 }
             }
-        self._push_notification(data,sock)
+            self._push_notification(data,sock)
 
     def roll(self, data, sock):
         # called by request handler <function=_handle_request> when
@@ -274,11 +279,8 @@ class Server:
         what = space.getType()
 
         if what == "DECK":
-            #turn deck card into a normal space
+
             space = space.drawCard()
-            # -------------------------NOTE----------------
-            # send CARD mesage to clients
-            # ----------------------------------------------
             card = {
                 "text":str(space),
                 "is_bail": space.getValue(),
@@ -376,10 +378,10 @@ class Server:
             # wait for response
             self.timer.start()
             out = self._waitResponse("BUY", sock)
-            if out = "timeout":
+            if out == "timeout":
                 self._timeout = False
             else:
-                if message[0]["values"]["buy"]:
+                if out[0]["values"]["buy"]:
                     data = {
                         "command": "PAY",
                         "values": {
@@ -398,7 +400,7 @@ class Server:
         pid = self.game["comms"][sock]
         self.game["comms"].pop(sock)
         self.game["comms_rev"].pop(pid)
-        self.game["board"].removePlayer()
+        self.game["board"].removePlayer(pid)
 
     def quit(self, data, sock):
         data = {
