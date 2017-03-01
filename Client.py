@@ -15,10 +15,6 @@ class Client:
     def __init__(self):
         # setup the client
         self._connection_queue = Queue()
-        self._broadcaster = Thread(target=self._broadcast, args=(self.BROADCAST_PORT))
-        self._broadcaster.start()
-        self.transmitter = Thread(target=self._transmit, args=(self.TRANSMIT_PORT))
-        self.transmitter.start()
         self._socket = None
         self._transmitter = Thread(target=self.addToQueue, args=())
         self._open_games = []
