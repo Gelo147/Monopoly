@@ -16,6 +16,7 @@ class Server:
     CLIENT_DECISION_TIME = 60
 
     def __init__(self, broadcast_port=None, service_port=None):
+        self.incomming = False
         self._timeout = False
         self.connection_queue = Queue()
         self.timer = Timer(60, self.time)
@@ -39,11 +40,48 @@ class Server:
                                args=(broadcast_port if broadcast_port is not None else Server.BROADCAST_PORT, ))
         self.discover.start()
 
-        self.server = Thread(target=self._open_service,
+        self.service = Thread(target=self._service,
                              args=((service_port if service_port is not None else Server.SERVICE_PORT), ))
-        self.server.start()
+        self.service.start()
 
-    def _open_service(self, port):
+    def _run_incomming(self):
+        if not self.incomming:
+            self.incomming_thread = Thread(target=self._incomming_messages,
+                              args=())
+            self.incomming_thread.start()
+
+    def _incomming_messages(self,):
+        while True:
+            try:
+                connections, write, exception = select(list(self.game["comms"]), [], [], 0.05)
+                for con in connections:
+                    client_sock, address = con.accept()
+                    data = loads(client_sock.recv(4096).decode())
+                    print("Data: ", data)
+                    try:
+                        if data["command"] == "CHAT":
+                            action = self.chat
+                        elif data["command"] == "TURN":
+                            action = self.turn
+                        elif data["command"] == "START":
+                            action = self.start
+                        elif data["command"] == "QUIT":
+                            action = self.quit
+                        else:
+                            self.connection_queue.put((data, client_sock))
+                            raise StupidException("Skip action call")
+                        action(data, client_sock)
+                    except Exception as e:
+                        print("TCP Error 1 ", e)
+                        client_sock.close()
+            except timeout:
+                pass
+            except StupidException:
+                pass
+            except Exception as e:
+                print("TCP Error 2 ", e)
+
+    def _service(self,port):
         self.service_sock = socket()
         self.service_sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         self.service_sock.bind(('', port))
@@ -57,18 +95,10 @@ class Server:
                     data = loads(client_sock.recv(4096).decode())
                     print("Data: ", data)
                     try:
-                        if data["command"] == "CREATE":
-                            action = self.create_game
-                        elif data["command"] == "JOIN":
+                        if data["command"] == "JOIN":
                             action = self.join_game
-                        elif data["command"] == "CHAT":
-                            action = self.chat
-                        elif data["command"] == "TURN":
-                            action = self.turn
-                        elif data["command"] == "START":
-                            action = self.start
-                        elif data["command"] == "QUIT":
-                            action = self.quit
+                        elif data["command"] == "CREATE":
+                            action = self.create_game
                         else:
                             self.connection_queue.put((data, client_sock))
                             raise StupidException("Skip action call")
@@ -145,6 +175,7 @@ class Server:
                 "command": "CREATE",
                 "values": "1",
             }
+            self._run_incomming()
         else:
             data = {
                 "command": "CREATE",
@@ -185,6 +216,7 @@ class Server:
             self.game["top_id"] += 1
             success = "1"
             print(">>>>JOIN : ", self.game["players"])
+            self._run_incomming()
         data = {
             "command": "JOIN",
             "values": success,
