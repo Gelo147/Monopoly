@@ -143,7 +143,7 @@ class Server:
             self.game["top_id"] += 1
             data = {
                 "command": "CREATE",
-                "values": "1"
+                "values": "1",
             }
         else:
             data = {
@@ -176,14 +176,14 @@ class Server:
         # called by request handler <function=_handle_broadcast> when
         # incoming message has <var=command> = JOIN
         # Returns: Success / Failure message
-        success = 0
+        success = "0"
         if not self.game["started"] and (self.game["top_id"] < 6):
             self.game["comms"][self.game["top_id"]] = sock
             self.game["comms_rev"][sock] = self.game["top_id"]
             # add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
-            success = 1
+            success = "1"
             print(">>>>JOIN : ", self.game["players"])
         data = {
             "command": "JOIN",
