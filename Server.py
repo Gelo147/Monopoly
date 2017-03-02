@@ -7,11 +7,14 @@ from Board import Board
 from StupidException import StupidException
 from queue import Queue
 
+
 class Server:
+
     BROADCAST_PORT = 44470
     SERVICE_PORT = 44469
-    BOARD_FILE  = "board.txt"
+    BOARD_FILE = "board.txt"
     CLIENT_DECISION_TIME = 60
+
     def __init__(self, broadcast_port=None, service_port=None):
         self._timeout = False
         self.connection_queue = Queue()
@@ -27,17 +30,17 @@ class Server:
             "turn": 0,
             "last_action": {
                 "rolled": False,
-                "last_roll" : [],
-                "doubles" : 0
+                "last_roll": [],
+                "doubles": 0
             }
         }
 
         self.discover = Thread(target=self._open_broadcast,
-                               args=(broadcast_port if broadcast_port is not None else Server.BROADCAST_PORT,))
+                               args=(broadcast_port if broadcast_port is not None else Server.BROADCAST_PORT, ))
         self.discover.start()
 
         self.server = Thread(target=self._open_service,
-                             args=((service_port if service_port is not None else Server.SERVICE_PORT),))
+                             args=((service_port if service_port is not None else Server.SERVICE_PORT), ))
         self.server.start()
 
     def _open_service(self, port):
@@ -48,11 +51,11 @@ class Server:
         print("Service Listening")
         while True:
             try:
-                connections, write, exception = select([self.service_sock],[],[],0.05)
+                connections, write, exception = select([self.service_sock], [], [], 0.05)
                 for con in connections:
                     client_sock, address = con.accept()
                     data = loads(client_sock.recv(4096).decode())
-                    print("Data: ",data)
+                    print("Data: ", data)
                     try:
                         if data["command"] == "CREATE":
                             action = self.create_game
@@ -67,9 +70,9 @@ class Server:
                         elif data["command"] == "QUIT":
                             action = self.quit
                         else:
-                            self.connection_queue.put((data,client_sock))
-                            raise StupidException()
-                        action(data,client_sock)
+                            self.connection_queue.put((data, client_sock))
+                            raise StupidException("Skip action call")
+                        action(data, client_sock)
                     except Exception as e:
                         print("TCP Error 1 ", e)
                         client_sock.close()
@@ -78,7 +81,7 @@ class Server:
             except StupidException:
                 pass
             except Exception as e:
-                print("TCP Error 2 ",e)
+                print("TCP Error 2 ", e)
 
     def _open_broadcast(self, broadcast_port):
         broadcastsock = socket(AF_INET, SOCK_DGRAM)
@@ -99,14 +102,14 @@ class Server:
             except timeout:
                 pass
             except Exception as e:
-                print("Broadcast Error ",e)
+                print("Broadcast Error ", e)
 
     def broadcast_error(self, data, sock, address=None):
         # yes name is wrong... all errors go through here
         # {command:error}
         data = {"command": "ERROR",
                 "values": "Unknown command"}
-        self._send_answer(data, sock, address) if address != None else self._send_answer_tcp(data, sock)
+        self._send_answer(data, sock, address) if address else self._send_answer_tcp(data, sock)
 
     def _send_answer(self, data, sock, address):
         sock.sendto(dumps(data).encode(), address)
@@ -135,7 +138,7 @@ class Server:
         if len(self.game["players"]) < 1:
             self.game["comms"][self.game["top_id"]] = sock
             self.game["comms_rev"][sock] = self.game["top_id"]
-            #add player to the player list
+            # add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
             data = {
@@ -165,7 +168,7 @@ class Server:
         if len(self.game["players"]) > 0:
             data["game"] = {
                 "name": self.game["name"],
-                "players": [player for player in self.game["players"]]
+                "players": self.game["players"],
             }
         self._send_answer(data, sock, address)
 
@@ -195,7 +198,7 @@ class Server:
         "missing a word" to an action performed as a result of a request
     <-------------------------------------------------------------------->
     """
-    def start(self,data, sock):
+    def start(self, data, sock):
         if self.game["comms"][sock] == 0:
             if self.game["top_id"] >= 2:
                 self.game["started"] = True
@@ -203,8 +206,8 @@ class Server:
                 data = {
                     "command": "START",
                     "values": {
-                        "players": self.game["players"],
-                        "local": None
+                        "players": [{i, self.game["players"][i]} for i in range(len(self.game["players"]))],
+                        "local": None,
                     }
                 }
                 for socket in self.game["comms"].keys():
@@ -225,7 +228,7 @@ class Server:
                     "player": self.game["players"][self.game["comms"][sock]]
                 }
             }
-            self._push_notification(data,sock)
+            self._push_notification(data, sock)
 
     def roll(self, data, sock):
         # called by request handler <function=_handle_request> when
