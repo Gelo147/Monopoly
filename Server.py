@@ -150,7 +150,7 @@ class Server:
         print("Sent tcp")
 
     def _push_notification(self,data,exclude=None):
-        for sock in self.game["comms_rev"]:
+        for sock in self.game["comms"]:
             if sock != exclude:
                 sock.sendall(dumps(data).encode())
                 print("Sent notification")
