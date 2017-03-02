@@ -22,10 +22,17 @@ class Client:
         self._board = None
         self._local_player = None
 
-    def createGame(self, username, password):
+    """
+    <-------------------- Game discovery and creation ------------------->
+        Following methods are for setup before game has actually started
+    <-------------------------------------------------------------------->
+    """
+
+    def createGame(self,address, username, password):
         # inform the server we wish to create a game
         try:
             sock_create = socket()
+            sock_create.connect((address, Client.TRANSMIT_PORT))
             # password = sha256(password.encode()).hexdigest()
             data = json.dumps(({"command": "CREATE", "values": {"game": "Monopoly",
                                                                 "username": username,
@@ -33,21 +40,27 @@ class Client:
             sock_create.sendall(data.encode())
             data = None
             while not data:
-                data, address = sock_create.recvfrom(1024)
-                sock_create.connect((address[0], self.TRANSMIT_PORT))
+                data = sock_create.recv(1024)
                 data = json.loads(data.decode())
-            self._socket = sock_create
-            self._transmitter.start()
+                if data:
+                    print("response",data)
+                if data and data["command"] == "CREATE" and data["values"] == '1':
+                    print("game created successfully")
+                    self._socket = sock_create
+                    self._transmitter.start()
         except timeout:
             pass
-        if data == "1":
-            sock_create.close()
 
     def test(self):
         address = self.poll()
-        self.join(address, "conortwo", "psswd")
+        print("server address",address)
+        self.createGame(address,"conortwo", "psswd")
+        self.start()
+        while True:
+            pass
         
     def poll(self):
+        # used to discover any open games on the network
         s = socket(AF_INET, SOCK_DGRAM)
         s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         data = json.dumps({"command": "POLL"})
@@ -56,7 +69,7 @@ class Client:
         while data == None:
             data, addr = s.recvfrom(1024)
             data = json.loads(data.decode())
-            print(data)
+            print("Games found:",data)
         s.close()
         return addr[0]
 
@@ -70,17 +83,31 @@ class Client:
         data = None
         while not data:
             data = json.loads(sock_join.recv(1024).decode())
-            if data and data["command"] == "JOIN" and data["values"] == 1:
+            if data and data["command"] == "JOIN" and data["values"] == '1':
                 self._socket = sock_join
                 self._transmitter.start()
 
     def listGames(self):
         # returns a list of games client has heard about
         return self._open_games
-
-    def _transmit(self, transmit_port):
-        # to be run in a thread and handle outgoing messages to specific server
-        pass
+        
+    """
+    <-------------------- Commands from GUI ----------------------------->
+        Following methods are for communicating user intent to server
+    <-------------------------------------------------------------------->
+    """
+    def start(self):
+        # tell the server to start the game already
+        data = json.dumps({"command":"START"})
+        data = self._socket.sendall(data.encode())
+        print("sent data",data)
+        data = None
+        while not data:
+            data = json.loads(self._socket.recv(1024).decode())
+            if data:
+                print("server says",data)
+            if data and data["command"] == "START" and data["values"] == '1':
+                print("game has started")
     
     def addToQueue(self):
         while True:
