@@ -177,7 +177,7 @@ class Server:
         # incoming message has <var=command> = JOIN
         # Returns: Success / Failure message
         success = "0"
-        if not self.game["started"] and (self.game["top_id"] < 6):
+        if not self.game["started"] and (self.game["top_id"] < 6 and self.game["top_id"] > 0 ):
             self.game["comms"][self.game["top_id"]] = sock
             self.game["comms_rev"][sock] = self.game["top_id"]
             # add player to the player list
