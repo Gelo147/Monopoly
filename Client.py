@@ -4,6 +4,8 @@ from threading import Thread
 from hashlib import sha256
 from queue import Queue
 from Board import Board
+import time
+from select import select
 
 
 class Client:
@@ -55,6 +57,7 @@ class Client:
         address = self.poll()
         print("server address",address)
         self.createGame(address,"conortwo", "psswd")
+        time.sleep(1)
         self.start()
         while True:
             pass
@@ -90,7 +93,15 @@ class Client:
     def listGames(self):
         # returns a list of games client has heard about
         return self._open_games
-        
+
+    def addToQueue(self):
+        while True:
+            data = None
+            while not data and self._socket:
+                data = self._socket.recv(1024).decode()
+            self._connection_queue.put(data)
+    
+
     """
     <-------------------- Commands from GUI ----------------------------->
         Following methods are for communicating user intent to server
@@ -99,25 +110,32 @@ class Client:
     def start(self):
         # tell the server to start the game already
         data = json.dumps({"command":"START"})
-        data = self._socket.sendall(data.encode())
         print("sent data",data)
+        data = self._socket.sendall(data.encode())
+        print("client socket",self._socket)
         data = None
         while not data:
-            data = json.loads(self._socket.recv(1024).decode())
-            if data:
-                print("server says",data)
-            if data and data["command"] == "START" and data["values"] == '1':
-                print("game has started")
+            try:
+                connections, write, exception = select([self._socket], [], [], 0.05)
+                print(connections)
+                for con in connections:
+                    print("check data")
+                    data = json.loads(con.recv(1024).decode())
+                    print("server says",data)
+                    if data and data["command"] == "START" and data["values"] == '1':
+                        print("game has started")
+            except Exception as e:
+                print(e)
     
-    def addToQueue(self):
-        while True:
-            data = None
-            while not data and self._socket:
-                data = self._socket.recv(1024).decode()
-            self._connection_queue.put(data)
+    def quit(self):
+        # Tell the server that you wish to quit this game
+        pass
     
-    
-    """Methods which handle server messages below"""
+    """
+    <---------- Updating local state based on Server messages ----------->
+        Following methods are for responding to Server messages and updating GUI
+    <-------------------------------------------------------------------->
+    """
     
     def _newGame(self, data):
         # handles a GAME message from the server by adding it to the list of open games
