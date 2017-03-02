@@ -166,8 +166,8 @@ class Server:
         # incoming message has <var=command> = CREATE
         # Returns: Success / Failure message
         if len(self.game["players"]) < 1:
-            self.game["comms"][self.game["top_id"]] = sock
-            self.game["comms_rev"][sock] = self.game["top_id"]
+            self.game["comms_rev"][self.game["top_id"]] = sock
+            self.game["comms"][sock] = self.game["top_id"]
             # add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
@@ -209,8 +209,8 @@ class Server:
         # Returns: Success / Failure message
         success = "0"
         if not self.game["started"] and (self.game["top_id"] < 6 and self.game["top_id"] > 0 ):
-            self.game["comms"][self.game["top_id"]] = sock
-            self.game["comms_rev"][sock] = self.game["top_id"]
+            self.game["comms_rev"][self.game["top_id"]] = sock
+            self.game["comms"][sock] = self.game["top_id"]
             # add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
