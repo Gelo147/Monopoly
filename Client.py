@@ -18,7 +18,8 @@ class Client:
         # setup the client
         self._connection_queue = Queue()
         self._socket = None
-        self._transmitter = Thread(target=self.addToQueue, args=())
+        #self._transmitter = Thread(target=self.addToQueue, args=())
+        self._listener = Thread(target=self._message_listener, args =())
         self._open_games = []
 
         self._board = None
@@ -49,6 +50,7 @@ class Client:
                 if data and data["command"] == "CREATE" and data["values"] == '1':
                     print("game created successfully")
                     self._socket = sock_create
+                    self._listener.start()
                     #self._transmitter.start()
         except timeout:
             pass
@@ -57,7 +59,7 @@ class Client:
         address = self.poll()
         print("server address",address)
         self.createGame(address,"conortwo", "psswd")
-        time.sleep(1)
+        input("want to start?")
         self.start()
         while True:
             pass
@@ -88,18 +90,48 @@ class Client:
             data = json.loads(sock_join.recv(1024).decode())
             if data and data["command"] == "JOIN" and data["values"] == '1':
                 self._socket = sock_join
+                self._listener.start()
                 #self._transmitter.start()
 
     def listGames(self):
         # returns a list of games client has heard about
         return self._open_games
 
-    def addToQueue(self):
+    """def addToQueue(self):
         while True:
             data = None
             while not data and self._socket:
                 data = self._socket.recv(1024).decode()
-            self._connection_queue.put(data)
+            self._connection_queue.put(data)"""
+
+    def _message_listener(self):
+        while True:
+            try:
+                connections, write, exception = select([self._socket], [], [], 0.05)
+                for con in connections:
+                    data = json.loads(con.recv(4096).decode())
+                    try:
+                        if data["command"] == "START":
+                            self._gameStart(data)
+                        elif data["command"] == "ROLL":
+                            self._rolled(data)
+                        elif data["command"] == "CHAT":
+                            print(data)
+                        else:
+                            print("Something weird",data)
+                    except Exception as e:
+                        print("TCP Error 1 ", e)
+            except Exception as e:
+                print(e)
+
+
+    def _waitResponse(self, command):
+        while not self._timeout:
+            message = self.connection_queue.get()
+            if message:
+                if message[0]["command"] == command:
+                    return message
+        return "timeout"
     
 
     """
@@ -113,6 +145,24 @@ class Client:
         print("sent data",data)
         data = self._socket.sendall(data.encode())
         print("client socket",self._socket)
+
+        """while not data:
+            try:
+                connections, write, exception = select([self._socket], [], [], 0.05)
+                print(connections)
+                for con in connections:
+                    print("check data")
+                    data = json.loads(con.recv(1024).decode())
+                    print("server says",data)
+                    if data and data["command"] == "START" and data["values"] == '1':
+                        print("game has started")
+            except Exception as e:
+                print(e)"""
+
+    def roll(self):
+        # tell the server that we wish to roll the dice and start our turn
+        data = json.dumps({"command":"ROLL"})
+        data = self._socket.sendall(data.encode())
         data = None
         while not data:
             try:
@@ -139,14 +189,15 @@ class Client:
     
     def _newGame(self, data):
         # handles a GAME message from the server by adding it to the list of open games
-        playernames = data["game"]["players"]
-        password_protected = data["game"]["password"]
+        playernames = data["values"]["game"]["players"]
+        password_protected = data["values"]["game"]["password"]
         self._open_games.append([playernames, password_protected])
 
     def _gameStart(self, data):
         # handles a START message from server by creating the board and passing it to GUI
-        players = data["players"]
-        local_id = data["local"]
+        print(data)
+        players = data["values"]["players"]
+        local_id = data["values"]["local"]
         self._board = Board(self.BOARD_FILE, players)
         self._local_player = self._board.getPlayer(local_id)
 
@@ -154,24 +205,24 @@ class Client:
 
     def _newTurn(self, data):
         # handles a TURN message from the server by telling GUI who's turn has begun
-        player_id = data["player"]
+        player_id = data["values"]["player"]
 
     # Gui.newTurn(player_id)
     def _hasQuit(self, data):
-        quitter = (data["player"])
+        quitter = (data["values"]["player"])
         self._board.removePlayer(quitter)
 
     def _bought(self, data):
         # update the owner of some space in board to be player with given id
-        player = Board.getPlayer(data["player_id"])
-        space = Board.getSpace(data["tile"])
+        player = Board.getPlayer(data["values"]["player_id"])
+        space = Board.getSpace(data["values"]["tile"])
         player.addProperty(space)
 
     def _paid(self, data):
         # update one or two players balances as they have changed
-        player_from = (data["player_from"])
-        player_to = (data["player_to"])
-        amount = (data["amount"])
+        player_from = (data["values"]["player_from"])
+        player_to = (data["values"]["player_to"])
+        amount = (data["values"]["amount"])
         if player_from is not None:
             player = Board.getPlayer(player_from)
             player.takeMoney(amount)
@@ -181,24 +232,28 @@ class Client:
 
     def _jailed(self,data):
         # some player got sent to jail so change their jail status
-        new_inmate = Board.getPlayer(data["player"])
+        new_inmate = Board.getPlayer(data["values"]["player"])
         new_inmate.updateJailed(True)
         
     def _sentchat(self, data):
         # send a message from the server to the textbox display
-        sent_by = data["player"]
-        message = data["message"]
+        sent_by = data["values"]["player"]
+        message = data["values"]["message"]
         if sent_by is not None:
             message = sent_by + ": " + message
         print(message)  # change to send chat for GUI?
 
     def _drewCard(self, data):
         # you drew a card so tell the GUI about it and check if you're on bail
-        card_text = data["text"]
-        bail_status = data["is_bail"]
+        card_text = data["values"]["text"]
+        bail_status = data["values"]["is_bail"]
         if bail_status:
             self._local.updateBail(bail_status)
         self._sentchat({"player": None, "message": "You drew the following card: " + card_text})
+
+    def _rolled(self,data):
+        die1, die2 = data["values"]["roll"][0] ,data["values"]["roll"][1]
+        print("You rolled a",die1,"and a",die2)
 
 
 if __name__ == '__main__':
