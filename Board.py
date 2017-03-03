@@ -18,8 +18,9 @@ class Board:
         self._spaces = self._makeSpaces(filename)
         self._players = []
         self._jail_pos = 0
-        for i in sorted(playernames):
-            self._players.append(Player(i, playernames[i], self._property_sets))
+        for playername in playernames:
+            print("Player:",playername)
+            self._players.append(Player(playername[0],playername[1], self._property_sets))
 
     def __str__(self):
         # text representation of board

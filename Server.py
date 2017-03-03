@@ -12,7 +12,7 @@ class Server:
 
     BROADCAST_PORT = 44470
     SERVICE_PORT = 44469
-    BOARD_FILE = "board.txt"
+    BOARD_FILE = "text/board.txt"
     CLIENT_DECISION_TIME = 60
 
     def __init__(self, broadcast_port=None, service_port=None):
@@ -233,7 +233,8 @@ class Server:
         if self.game["comms"][sock] == 0:
             if self.game["top_id"] >= 2:
                 self.game["started"] = True
-                players = [{i, self.game["players"][i]} for i in range(len(self.game["players"]))]
+                players = [(i, self.game["players"][i]) for i in range(len(self.game["players"]))]
+                print(players)
                 self.game["board"] = Board(Server.BOARD_FILE, players)
                 data = {
                     "command": "START",

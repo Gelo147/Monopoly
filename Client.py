@@ -121,6 +121,8 @@ class Client:
                             print("Something weird",data)
                     except Exception as e:
                         print("TCP Error 1 ", e)
+            except KeyboardInterrupt:
+                return
             except Exception as e:
                 print(e)
 
@@ -199,6 +201,7 @@ class Client:
         players = data["values"]["players"]
         local_id = data["values"]["local"]
         self._board = Board(self.BOARD_FILE, players)
+        print(self._board)
         self._local_player = self._board.getPlayer(local_id)
 
     # Gui.start(board,local_player)
