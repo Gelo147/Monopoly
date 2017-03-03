@@ -233,11 +233,12 @@ class Server:
         if self.game["comms"][sock] == 0:
             if self.game["top_id"] >= 2:
                 self.game["started"] = True
-                self.game["board"] = Board(Server.BOARD_FILE, self.game["players"])
+                players = [{i, self.game["players"][i]} for i in range(len(self.game["players"]))]
+                self.game["board"] = Board(Server.BOARD_FILE, players)
                 data = {
                     "command": "START",
                     "values": {
-                        "players": [{i, self.game["players"][i]} for i in range(len(self.game["players"]))],
+                        "players": players,
                         "local": None,
                     }
                 }
