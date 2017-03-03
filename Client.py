@@ -58,7 +58,7 @@ class Client:
     def test(self):
         address = self.poll()
         print("server address",address)
-        self.createGame(address,"conortwo", "psswd")
+        self.join(address,"conortwo", "psswd")
         input("want to start?")
         self.start()
         while True:
