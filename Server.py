@@ -226,7 +226,7 @@ class Server:
             "command": "JOIN",
             "values": success,
         }
-        self._push_notification(data)
+        self._send_answer_tcp(data,sock)
 
 
     """
@@ -240,7 +240,6 @@ class Server:
             if self.game["top_id"] >= 2:
                 self.game["started"] = True
                 players = [(i, self.game["players"][i]) for i in range(len(self.game["players"]))]
-                print(players)
                 self.game["board"] = Board(Server.BOARD_FILE, players)
                 data = {
                     "command": "START",
@@ -590,22 +589,26 @@ class Server:
 
     def _playGame(self):
         while True:
+            print("game x")
+            current_turn_sock = self.game["comms_rev"][self.game["turn"]]
             try:
-                if (not self.game["last_action"]["rolled"]) and (self.game["comms"][self.game["turn"]] is not None):
+                if (not self.game["last_action"]["rolled"]) and (current_turn_sock is not None):
+                    print("game y")
                     sentToJail = False
                     self.turn(None, None)
                     self.timer.start()
-                    out = self._waitResponse("ROLL", self.game["comms"][self.game["turn"]])
+                    out = self._waitResponse("ROLL", current_turn_sock)
                     if out == "timeout":
                         self._timeout = False
                         self.game["last_action"]["rolled"] = False
                         self.game["turn"] += 1
                         self.game["last_action"]["last_roll"] = []
                     else:
-                        roll = self.roll({}, self.game["comms"][self.game["turn"]])
+                        print("game z")
+                        roll = self.roll({}, current_turn_sock)
                         if roll[0] == roll[1]:
                             if self.game["last_action"]["doubles"] == 3:
-                                self.sendJail(self.game["comms"][self.game["turn"]])
+                                self.sendJail(current_turn_sock)
                                 sentToJail = True
                                 self.game["last_action"]["rolled"] = True
                             else:
@@ -614,11 +617,12 @@ class Server:
                             self.game["last_action"]["rolled"] = True
                         if not sentToJail:
                             data = {"command": "GOTO", "values": {"roll": roll}}
-                            self.go_to(data, self.game["comms"][self.game["turn"]])
+                            self.go_to(data, current_turn_sock)
                         else:
                             data = {"command": "GOTO", "values": "JAIL"}
-                            self.go_to(data, self.game["comms"][self.game["turn"]])
+                            self.go_to(data, current_turn_sock)
                 else:
+                    print("game z")
                     self.game["last_action"]["rolled"] = False
                     self.game["turn"] += 1
                     self.game["last_action"]["last_roll"] = []

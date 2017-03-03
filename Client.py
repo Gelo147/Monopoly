@@ -57,10 +57,14 @@ class Client:
 
     def test(self):
         address = self.poll()
-        print("server address",address)
-        self.join(address,"conortwo", "psswd")
-        input("want to start?")
-        self.start()
+        create = input("Create game? y / n")
+        if create == 'y':
+            self.createGame(address,"conortwo", "psswd")
+            input("want to start?")
+            self.start()
+        else:
+            self.join(address,"player 2", "psswd2")
+
         while True:
             pass
         
@@ -109,16 +113,28 @@ class Client:
             try:
                 connections, write, exception = select([self._socket], [], [], 0.05)
                 for con in connections:
-                    data = json.loads(con.recv(4096).decode())
                     try:
-                        if data["command"] == "START":
-                            self._gameStart(data)
-                        elif data["command"] == "ROLL":
-                            self._rolled(data)
-                        elif data["command"] == "CHAT":
-                            print(data)
-                        else:
-                            print("Something weird",data)
+                        data = con.recv(4096).decode()
+                        message = json.loads(data)
+                        self._handle_message(message)
+                    except ValueError:
+                        if data:
+                            if len(data.split('}{')) == 1:
+                                print("Invalid JSON string received: " + data)
+                            else:
+                                print("Combined JSON payloads received: " + data)
+                                messages = data.split('}{')
+                                messages[0] += '}'
+                                messages[-1] = '{' + messages[-1]
+                                for i, payload in enumerate(messages[1: -1]):
+                                    messages[i] = '{' + payload + '}'
+                                for message in messages:
+                                    try:
+                                        message = json.loads(message)
+                                        self._handle_message(message)
+                                    except ValueError:
+                                        print("Invalid JSON string received: " + message)
+
                     except Exception as e:
                         print("TCP Error 1 ", e)
             except KeyboardInterrupt:
@@ -126,6 +142,19 @@ class Client:
             except Exception as e:
                 print(e)
 
+    def _handle_message(self,data):
+        #handles different messages from the server
+        command = data["command"]
+        if command == "START":
+            self._gameStart(data)
+        elif command == "ROLL":
+            self._rolled(data)
+        elif command == "CHAT":
+            print(data)
+        elif command == "TURN":
+            self._newTurn(data)
+        else:
+            print("Something weird",data)
 
     def _waitResponse(self, command):
         while not self._timeout:
@@ -146,8 +175,6 @@ class Client:
         data = json.dumps({"command":"START"})
         print("sent data",data)
         data = self._socket.sendall(data.encode())
-        print("client socket",self._socket)
-
         """while not data:
             try:
                 connections, write, exception = select([self._socket], [], [], 0.05)
@@ -165,19 +192,6 @@ class Client:
         # tell the server that we wish to roll the dice and start our turn
         data = json.dumps({"command":"ROLL"})
         data = self._socket.sendall(data.encode())
-        data = None
-        while not data:
-            try:
-                connections, write, exception = select([self._socket], [], [], 0.05)
-                print(connections)
-                for con in connections:
-                    print("check data")
-                    data = json.loads(con.recv(1024).decode())
-                    print("server says",data)
-                    if data and data["command"] == "START" and data["values"] == '1':
-                        print("game has started")
-            except Exception as e:
-                print(e)
     
     def quit(self):
         # Tell the server that you wish to quit this game
@@ -201,7 +215,6 @@ class Client:
         players = data["values"]["players"]
         local_id = data["values"]["local"]
         self._board = Board(self.BOARD_FILE, players)
-        print(self._board)
         self._local_player = self._board.getPlayer(local_id)
 
     # Gui.start(board,local_player)
@@ -209,6 +222,9 @@ class Client:
     def _newTurn(self, data):
         # handles a TURN message from the server by telling GUI who's turn has begun
         player_id = data["values"]["player"]
+        print("It's your turn!")
+        input("start roll?")
+        self.roll()
 
     # Gui.newTurn(player_id)
     def _hasQuit(self, data):
