@@ -77,6 +77,8 @@ class Server:
                 pass
             except StupidException:
                 pass
+            except KeyboardInterrupt:
+                return
             except Exception as e:
                 print("TCP Error 2 ", e)
                 return 0
@@ -109,6 +111,8 @@ class Server:
                 pass
             except StupidException:
                 pass
+            except KeyboardInterrupt:
+                return
             except Exception as e:
                 print("TCP Error 2 ", e)
 
@@ -130,6 +134,8 @@ class Server:
                 action(data, broadcastsock, address)
             except timeout:
                 pass
+            except KeyboardInterrupt:
+                return
             except Exception as e:
                 print("Broadcast Error ", e)
 
