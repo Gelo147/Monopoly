@@ -12,7 +12,7 @@ class Client:
     BROADCAST_PORT = 44470
     TRANSMIT_PORT = 44469
     BROADCAST_ADDRESS = "255.255.255.255"
-    BOARD_FILE = "text/DublinBoard.txt"
+    BOARD_FILE = "text/board.txt"
 
     def __init__(self):
         # setup the client
@@ -195,7 +195,7 @@ class Client:
 
     def _gameStart(self, data):
         # handles a START message from server by creating the board and passing it to GUI
-        print(data)
+        print("starting game",data)
         players = data["values"]["players"]
         local_id = data["values"]["local"]
         self._board = Board(self.BOARD_FILE, players)
