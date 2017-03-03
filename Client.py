@@ -49,7 +49,7 @@ class Client:
                 if data and data["command"] == "CREATE" and data["values"] == '1':
                     print("game created successfully")
                     self._socket = sock_create
-                    self._transmitter.start()
+                    #self._transmitter.start()
         except timeout:
             pass
 
@@ -88,7 +88,7 @@ class Client:
             data = json.loads(sock_join.recv(1024).decode())
             if data and data["command"] == "JOIN" and data["values"] == '1':
                 self._socket = sock_join
-                self._transmitter.start()
+                #self._transmitter.start()
 
     def listGames(self):
         # returns a list of games client has heard about

@@ -55,8 +55,7 @@ class Server:
             try:
                 connections, write, exception = select(list(self.game["comms"]), [], [], 0.05)
                 for con in connections:
-                    client_sock, address = con.accept()
-                    data = loads(client_sock.recv(4096).decode())
+                    data = loads(con.recv(4096).decode())
                     print("Data: ", data)
                     try:
                         if data["command"] == "CHAT":
@@ -68,18 +67,19 @@ class Server:
                         elif data["command"] == "QUIT":
                             action = self.quit
                         else:
-                            self.connection_queue.put((data, client_sock))
+                            self.connection_queue.put((data, con))
                             raise StupidException("Skip action call")
-                        action(data, client_sock)
+                        action(data, con)
                     except Exception as e:
                         print("TCP Error 1 ", e)
-                        client_sock.close()
+                        #con.close()
             except timeout:
                 pass
             except StupidException:
                 pass
             except Exception as e:
                 print("TCP Error 2 ", e)
+                return 0
 
     def _service(self,port):
         self.service_sock = socket()
@@ -100,12 +100,11 @@ class Server:
                         elif data["command"] == "CREATE":
                             action = self.create_game
                         else:
-                            self.connection_queue.put((data, client_sock))
                             raise StupidException("Skip action call")
                         action(data, client_sock)
                     except Exception as e:
                         print("TCP Error 1 ", e)
-                        client_sock.close()
+                        #con.close()
             except timeout:
                 pass
             except StupidException:
