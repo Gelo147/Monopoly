@@ -276,12 +276,12 @@ class Server:
         data = {
             "command": "ROLL",
             "values": {
-                "roll": [randint(1, 7), randint(1, 7)],
+                "roll": [randint(1, 6), randint(1, 6)],
             }
         }
         self.game["last_action"]["rolled"] = True
         self.game["last_action"]["last_roll"] = data["values"]["roll"]
-        self._push_notification(data)
+        self._send_answer_tcp(data,sock)
         return data["values"]["roll"]
 
     def buyRequest(self, data, sock):
@@ -594,11 +594,13 @@ class Server:
             try:
                 if (not self.game["last_action"]["rolled"]) and (current_turn_sock is not None):
                     print("game y")
+
                     sentToJail = False
                     self.turn(None, None)
-                    self.timer.start()
+                    #self.timer.start()
                     out = self._waitResponse("ROLL", current_turn_sock)
                     if out == "timeout":
+                        print("timed out waiting for roll")
                         self._timeout = False
                         self.game["last_action"]["rolled"] = False
                         self.game["turn"] += 1
@@ -625,6 +627,8 @@ class Server:
                     print("game z")
                     self.game["last_action"]["rolled"] = False
                     self.game["turn"] += 1
+                    if self.game["turn"] == self.game["top_id"]:
+                        self.game["turn"] = 0
                     self.game["last_action"]["last_roll"] = []
             except Exception as e:
                 print(e)

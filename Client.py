@@ -222,9 +222,13 @@ class Client:
     def _newTurn(self, data):
         # handles a TURN message from the server by telling GUI who's turn has begun
         player_id = data["values"]["player"]
-        print("It's your turn!")
-        input("start roll?")
-        self.roll()
+        local_id = self._local_player.getId()
+        if player_id == local_id:
+            print("It's your turn!")
+            input("start roll?")
+            self.roll()
+        else:
+            print("It's",self._board.getPlayer(player_id).getName(),"'s turn!")
 
     # Gui.newTurn(player_id)
     def _hasQuit(self, data):
