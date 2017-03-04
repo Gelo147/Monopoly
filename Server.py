@@ -303,6 +303,37 @@ class Server:
     def pass_go(self,sock):
         self.pay(self.game["socket_to_id"][sock], None, 200, sock)
 
+    def _handle_card(self, card, sock):
+        card_text = card.getText()
+        card_type = card.getType()
+        data = {
+            "command": "CARD",
+            "values": {
+                "text": card_text,
+                "is_bail": (True if card_type == "BAIL" else False),
+            }
+        }
+        self._push_notification(data)
+
+        if card_type == "COLLECT":
+            self.pay(None, self.game["socket_to_id"][sock], int(space.getValue()), sock)
+        elif card_type == "PAY":
+            self.pay(self.game["socket_to_id"][sock], None, int(space.getValue()), sock)
+        elif card_type == "BAIL":
+            self.game["board"].getPlayer(["socket_to_id"][sock]).updateBail(True)
+        elif card_type == "GOTO":
+            where = card.getValue()
+            data = {"values": {}}
+            if where == "JAIL":
+                self.sendJail(sock)
+            elif where == "GO":
+                data["values"]["tile"] = 0
+            else:
+                data["values"]["tile"] = where
+            self.go_to(data, sock)
+
+
+
     def _proccess_position(self, tile, sock):
         print("process",1)
         if tile == -1:
@@ -313,14 +344,8 @@ class Server:
         what = space.getType()
 
         if what == "DECK":
-
-            space = space.drawCard()
-            card = {
-                "text":str(space),
-                "is_bail": space.getValue(),
-            }
-            data = {"command": "CARD", "values": card}
-            self._push_notification(data)
+            card = space.drawCard()
+            self._handle_card(card)
         if what == "GO":
             self.pass_go(sock)
         elif what == "PROPERTY":
@@ -328,30 +353,8 @@ class Server:
             self._onPropertySpace(space,sock)
         elif what == "GOTOJAIL":
             self.sendJail(sock)
-        elif what == "TAX" or what == "PAY":
-            self.pay(self.game["socket_to_id"][sock], None, int(space.getValue()), sock)
-        elif what == "COLLECT":
-            self.pay(None, self.game["socket_to_id"][sock], int(space.getValue()), sock)
-        elif what == "BAIL":
-            data = {
-                "command": "CARD",
-                "values": {
-                        "text": str(space),
-                        "is_bail": True,
-                    }
-                }
-
-            self._push_notification(data)
-        elif what == "GOTO":
-            where = space.getValue()
-            data = {"values": {}}
-            if where == "JAIL":
-                self.sendJail(sock)
-            elif where == "GO":
-                data["values"]["tile"] = 0
-            else:
-                data["values"]["tile"] = where
-            self.go_to(data,sock)
+        elif what == "TAX":
+            self.pay(self.game["socket_to_id"][sock], None, int(space.getFee()), sock)
         else:
             pass #error
 
@@ -520,28 +523,6 @@ class Server:
             }
         }
         self._push_notification(data)
-
-    def card(self, tile):
-        # Comunity Chest / Chance cards
-        #
-        # {
-        #    "command": "CARD",
-        #    "values": {
-        #        "text": str text,
-        #        "is_bail": bool is_bail
-        #    }
-        # }
-        space = self.game["board"].getSpace(tile)
-        card = space.drawCard()
-        out = {
-            "command": "CARD",
-            "values": {
-                "text": card.getText(),
-                "is_bail": card.getType() == "BAIL"
-            }
-        }
-        self._push_notification(out)
-        return card
 
 
     def sendJail(self, sock):

@@ -126,7 +126,7 @@ class Client:
                                 messages = data.split('}{')
                                 messages[0] += '}'
                                 messages[-1] = '{' + messages[-1]
-                                for i, payload in enumerate(messages[1: -1]):
+                                for i, payload in enumerate(messages[1: -1],1):
                                     messages[i] = '{' + payload + '}'
                                 for message in messages:
                                     try:
