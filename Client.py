@@ -290,10 +290,12 @@ class Client:
         player_to = (data["values"]["player_to"])
         amount = (data["values"]["amount"])
         if player_from is not None:
-            player = Board.getPlayer(player_from)
+            player = self._board.getPlayer(player_from)
+            print(player.getName(),"just paid",amount)
             player.takeMoney(amount)
         if player_to is not None:
-            player = Board.getPlayer(player_to)
+            player = self._board.getPlayer(player_to)
+            print(player.getName(), "just got paid", amount)
             player.addMoney(amount)
 
     def _jailed(self,data):
@@ -314,7 +316,7 @@ class Client:
         card_text = data["values"]["text"]
         bail_status = data["values"]["is_bail"]
         if bail_status:
-            self._local.updateBail(bail_status)
+            self._local_player.updateBail(bail_status)
         self._sentchat({"player": None, "message": "You drew the following card: " + card_text})
 
     def _rolled(self,data):

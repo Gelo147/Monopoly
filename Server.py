@@ -301,17 +301,10 @@ class Server:
         return new_space
 
     def pass_go(self,sock):
-        data = {
-            "command": "PAY",
-            "values": {
-                "to": self.game["socket_to_id"][sock],
-                "from": None,
-                "amount": 200
-            }
-        }
-        self.pay(data, sock)
+        self.pay(self.game["socket_to_id"][sock], None, 200, sock)
 
     def _proccess_position(self, tile, sock):
+        print("process",1)
         if tile == -1:
             tile = self.game["board"].getJailposition()
 
@@ -331,27 +324,14 @@ class Server:
         if what == "GO":
             self.pass_go(sock)
         elif what == "PROPERTY":
+            print("process", 2)
             self._onPropertySpace(space,sock)
         elif what == "GOTOJAIL":
             self.sendJail(sock)
         elif what == "TAX" or what == "PAY":
-            data = {"command": "PAY",
-                    "values": {
-                        "from": self.game["socket_to_id"][sock],
-                        "to": None,
-                        "amount": int(space.getValue())
-                    }
-            }
-            self.pay(data,sock)
+            self.pay(self.game["socket_to_id"][sock], None, int(space.getValue()), sock)
         elif what == "COLLECT":
-            data = {"command": "PAY",
-                    "values": {
-                        "to": self.game["socket_to_id"][sock],
-                        "from": None,
-                        "amount": int(space.getValue())
-                    }
-            }
-            self.pay(data, sock)
+            self.pay(None, self.game["socket_to_id"][sock], int(space.getValue()), sock)
         elif what == "BAIL":
             data = {
                 "command": "CARD",
@@ -404,15 +384,7 @@ class Server:
         if (owner_id is not None) and (owner_id != player_id):
             # someone else owns the space so player pays them
             cost = int(space.getRent())
-            data = {
-                "command": "PAY",
-                "values": {
-                    "from": player_id,
-                    "to": owner_id,
-                    "ammount": cost
-                }
-            }
-            self.pay(data, None)
+            self.pay(player_id, owner_id, cost, sock)
         elif owner_id is None and player.getBalance() > cost:
             # send BUY?
             self.buyRequest(None, sock)
@@ -423,15 +395,7 @@ class Server:
                 self._timeout = False
             else:
                 if out[0]["values"]["buy"]:
-                    data = {
-                        "command": "PAY",
-                        "values": {
-                            "from": player.getId(),
-                            "to": None,
-                            "ammount": cost
-                        }
-                    }
-                    self.pay(data, None)
+                    self.pay(player_id, None, cost, sock)
                     self.buy(space, player)
         else:
             #future possability of buying houses if you land on that space??
@@ -480,7 +444,6 @@ class Server:
     def go_to(self, data, sock):
         # inform all players where one player is
         # {values: {palyer: int player_id, tile: int tile } }
-        print("1")
         player_id = self.game["socket_to_id"][sock]
         d = {
             "command": "GOTO",
@@ -490,7 +453,6 @@ class Server:
             }
         }
         p = self.game["board"].getPlayer(player_id)
-        print("2")
         if "roll" in data["values"]:
             d["values"]["tile"] = self._move_player(player_id, sum(data["values"]["roll"]))
             p.setPosition(d["values"]["tile"])
@@ -499,12 +461,10 @@ class Server:
             p.setPosition(self.game["board"].getJailPosition())
         else:
             d["values"]["tile"] = data["values"]["tile"]
-        print("3")
-        print("sent this goto",d)
         self._push_notification(d)
-        self._proccess_position(d["tile"], sock)
+        self._proccess_position(d["values"]["tile"], sock)
 
-    def pay(self, data, sock):
+    def pay(self,p_from,p_to,amount,sock):
         # transaction between player and player or bank and player if
         # to or from are None
         # {"command": "PAY",
@@ -514,10 +474,17 @@ class Server:
         #        "amount": int amount
         #     }
         # }
-        if data["values"]["to"]:
-            self.game["board"].getPlayer(data["values"]["to"]).addMoney(data["values"]["amount"])
-        if data["values"]["from"]:
-            self.game["board"].getPlayer(data["values"]["from"]).takeMoney(data["values"]["amount"])
+        data = {"command": "PAY",
+                "values": {
+                    "player_from": p_from,
+                    "player_to": p_to,
+                    "amount": amount
+                }
+                }
+        if p_to:
+            self.game["board"].getPlayer(p_to).addMoney(amount)
+        if p_from:
+            self.game["board"].getPlayer(p_from).takeMoney(amount)
         self. _push_notification(data)
 
 
