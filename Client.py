@@ -267,9 +267,9 @@ class Client:
 
     def _movedTo(self,data):
         # handles GOTO message by updating a players position to tile specified
-        player = Board.getPlayer(data["values"]["player_id"])
+        player = self._board.getPlayer(data["values"]["player"])
         space_position = data["values"]["tile"]
-        space = Board.getSpace(space_position)
+        space = self._board.getSpace(space_position)
         player.setPosition(space_position)
 
         print(player.getName() + " just moved to " + space.getText())

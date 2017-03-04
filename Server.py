@@ -23,8 +23,8 @@ class Server:
         self.game = {
             "name": "Monopoly",
             "players": [],  # player names
-            "comms": {},  # socket: id map
-            "comms_rev": {},  # id: socket map
+            "socket_to_id": {},  # socket: id map
+            "id_to_socket": {},  # id: socket map
             "board": None,
             "top_id": 0,
             "started": False,
@@ -53,7 +53,7 @@ class Server:
     def _incomming_messages(self,):
         while True:
             try:
-                connections, write, exception = select(list(self.game["comms"]), [], [], 0.05)
+                connections, write, exception = select(list(self.game["socket_to_id"]), [], [], 0.05)
                 for con in connections:
                     data = loads(con.recv(4096).decode())
                     print("Data: ", data)
@@ -155,7 +155,7 @@ class Server:
         print("Sent tcp")
 
     def _push_notification(self,data,exclude=None):
-        for sock in self.game["comms"]:
+        for sock in self.game["socket_to_id"]:
             if sock != exclude:
                 sock.sendall(dumps(data).encode())
                 print("Sent notification")
@@ -171,8 +171,8 @@ class Server:
         # incoming message has <var=command> = CREATE
         # Returns: Success / Failure message
         if len(self.game["players"]) < 1:
-            self.game["comms_rev"][self.game["top_id"]] = sock
-            self.game["comms"][sock] = self.game["top_id"]
+            self.game["id_to_socket"][self.game["top_id"]] = sock
+            self.game["socket_to_id"][sock] = self.game["top_id"]
             # add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
@@ -214,8 +214,8 @@ class Server:
         # Returns: Success / Failure message
         success = "0"
         if not self.game["started"] and (self.game["top_id"] < 6 and self.game["top_id"] > 0 ):
-            self.game["comms_rev"][self.game["top_id"]] = sock
-            self.game["comms"][sock] = self.game["top_id"]
+            self.game["id_to_socket"][self.game["top_id"]] = sock
+            self.game["socket_to_id"][sock] = self.game["top_id"]
             # add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
@@ -236,7 +236,7 @@ class Server:
     <-------------------------------------------------------------------->
     """
     def start(self, data, sock):
-        if self.game["comms"][sock] == 0:
+        if self.game["socket_to_id"][sock] == 0:
             if self.game["top_id"] >= 2:
                 self.game["started"] = True
                 players = [(i, self.game["players"][i]) for i in range(len(self.game["players"]))]
@@ -248,8 +248,8 @@ class Server:
                         "local": None,
                     }
                 }
-                for socket in self.game["comms"].keys():
-                    data["values"]["local"] = self.game["comms"][socket]
+                for socket in self.game["socket_to_id"].keys():
+                    data["values"]["local"] = self.game["socket_to_id"][socket]
                     self._send_answer_tcp(data,socket)
                 self._playGame()
             else:
@@ -263,7 +263,7 @@ class Server:
                 "command": "CHAT",
                 "values": {
                     "text": "Start the game already!!",
-                    "player": self.game["players"][self.game["comms"][sock]]
+                    "player": self.game["players"][self.game["socket_to_id"][sock]]
                 }
             }
             self._push_notification(data, sock)
@@ -292,10 +292,10 @@ class Server:
         self._send_answer_tcp(data, sock)
 
     def _move_player(self,playerID, spaces):
-        current_space = self.game["board"].getPlayer(playerID)
+        current_space = self.game["board"].getPlayer(playerID).getPosition()
         if (current_space + spaces) > self.game["board"].getSize():
             new_space = (current_space + spaces) - self.game["board"].getSize()
-            self.pass_go(self.game["comms_rev"][playerID])
+            self.pass_go(self.game["id_to_socket"][playerID])
         else:
             new_space = current_space + spaces
         return new_space
@@ -304,7 +304,7 @@ class Server:
         data = {
             "command": "PAY",
             "values": {
-                "to": self.game["comms"][sock],
+                "to": self.game["socket_to_id"][sock],
                 "from": None,
                 "amount": 200
             }
@@ -337,7 +337,7 @@ class Server:
         elif what == "TAX" or what == "PAY":
             data = {"command": "PAY",
                     "values": {
-                        "from": self.game["comms"][sock],
+                        "from": self.game["socket_to_id"][sock],
                         "to": None,
                         "amount": int(space.getValue())
                     }
@@ -346,7 +346,7 @@ class Server:
         elif what == "COLLECT":
             data = {"command": "PAY",
                     "values": {
-                        "to": self.game["comms"][sock],
+                        "to": self.game["socket_to_id"][sock],
                         "from": None,
                         "amount": int(space.getValue())
                     }
@@ -398,7 +398,7 @@ class Server:
 
     def _onPropertySpace(self, space, sock):
         cost = int(space.getPrice())
-        player_id = self.game["comms"][sock]
+        player_id = self.game["socket_to_id"][sock]
         owner_id = space.getOwner()
         player = self.game["board"].getPlayer(player_id)
         if (owner_id is not None) and (owner_id != player_id):
@@ -438,15 +438,15 @@ class Server:
             pass
 
     def remove_player(self, sock):
-        pid = self.game["comms"][sock]
-        self.game["comms"].pop(sock)
-        self.game["comms_rev"].pop(pid)
+        pid = self.game["socket_to_id"][sock]
+        self.game["socket_to_id"].pop(sock)
+        self.game["id_to_socket"].pop(pid)
         self.game["board"].removePlayer(pid)
 
     def quit(self, data, sock):
         data = {
             "command": "QUIT",
-            "values": {"player": self.game["comms"][sock]}
+            "values": {"player": self.game["socket_to_id"][sock]}
         }
         self.remove_player(sock)
         self._push_notification(data,sock)
@@ -461,7 +461,7 @@ class Server:
             "command": "CHAT",
             "values": {
                 "text": data["text"],
-                "from": self.game["comms"][sock].name
+                "from": self.game["socket_to_id"][sock].name
             }
         }
         self._push_notification(data,sock)
@@ -480,23 +480,27 @@ class Server:
     def go_to(self, data, sock):
         # inform all players where one player is
         # {values: {palyer: int player_id, tile: int tile } }
+        print("1")
+        player_id = self.game["socket_to_id"][sock]
         d = {
             "command": "GOTO",
             "values": {
-                "player": self.game["comms_rev"][sock],
+                "player": player_id,
                 "tile": None
             }
         }
-        p = self.game["board"].getPlayer(self.game["comms"][sock])
+        p = self.game["board"].getPlayer(player_id)
+        print("2")
         if "roll" in data["values"]:
-            d["values"]["tile"] = self._move_player(self.game["comms_rev"][sock], sum(data["values"]["roll"]))
+            d["values"]["tile"] = self._move_player(player_id, sum(data["values"]["roll"]))
             p.setPosition(d["values"]["tile"])
         elif "jail" in data["values"]:
             d["values"]["tile"] = -1
             p.setPosition(self.game["board"].getJailPosition())
         else:
             d["values"]["tile"] = data["values"]["tile"]
-
+        print("3")
+        print("sent this goto",d)
         self._push_notification(d)
         self._proccess_position(d["tile"], sock)
 
@@ -522,7 +526,7 @@ class Server:
         # incoming message has <var=command> = SELL
         # 'sells' the properties defined in <var=ids> inside <var=values>
         # Returns: PAY message
-        player_id = self.game["comms"][sock]
+        player_id = self.game["socket_to_id"][sock]
         player = self.game["board"].getPlayer(player_id)
         total = 0
         sold = []
@@ -574,7 +578,7 @@ class Server:
 
 
     def sendJail(self, sock):
-        pid = self.game["comms"][sock]
+        pid = self.game["socket_to_id"][sock]
         data = {"command": "JAIL",
                 "values": {
                     "player": pid
@@ -590,7 +594,7 @@ class Server:
     def _playGame(self):
         while True:
             print("game x")
-            current_turn_sock = self.game["comms_rev"][self.game["turn"]]
+            current_turn_sock = self.game["id_to_socket"][self.game["turn"]]
             try:
                 if (not self.game["last_action"]["rolled"]) and (current_turn_sock is not None):
                     print("game y")
@@ -618,6 +622,7 @@ class Server:
                         else:
                             self.game["last_action"]["rolled"] = True
                         if not sentToJail:
+                            print("prepping a goto")
                             data = {"command": "GOTO", "values": {"roll": roll}}
                             self.go_to(data, current_turn_sock)
                         else:
