@@ -17,7 +17,7 @@ and property they currently own"""
         
     def __str__(self):
         #describes the player in plain text
-        return self._name
+        return self._name + " is on space " +str(self._position) + " with this much cash: " + str(self._balance)
 
     def addMoney(self,money):
         #add cash directy to current players balance

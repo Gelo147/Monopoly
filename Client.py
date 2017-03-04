@@ -150,9 +150,23 @@ class Client:
         elif command == "ROLL":
             self._rolled(data)
         elif command == "CHAT":
-            print(data)
+            self._sentchat(data)
         elif command == "TURN":
             self._newTurn(data)
+        elif command == "BUY?":
+            self.buy(True)
+        elif command == "BOUGHT":
+            self._bought(data)
+        elif command == "GOTO":
+            self._movedTo(data)
+        elif command == "JAIL":
+            self._jailed(data)
+        elif command == "PAY":
+            self._paid(data)
+        elif command == "CARD":
+            self._drewCard(data)
+        elif command == "QUIT":
+            self._hasQuit(data)
         else:
             print("Something weird",data)
 
@@ -192,6 +206,21 @@ class Client:
         # tell the server that we wish to roll the dice and start our turn
         data = json.dumps({"command":"ROLL"})
         data = self._socket.sendall(data.encode())
+
+    def buy(self,answer):
+        # tell the server whether we wish to buy a property we landed on or not
+        if answer:
+            data = json.dumps({"command":"BUY","values":{"buy":1}})
+        else:
+            data = json.dumps({"command":"BUY","values":{"buy":0}})
+        data = self._socket.sendall(data.encode())
+
+    def chat(self,message):
+        # send a chat message to the server to be broadcast to all other players
+        data = json.dumps({"command": "CHAT", "values": {"text": message}})
+        data = self._socket.sendall(data.encode())
+
+
     
     def quit(self):
         # Tell the server that you wish to quit this game
@@ -222,6 +251,7 @@ class Client:
     def _newTurn(self, data):
         # handles a TURN message from the server by telling GUI who's turn has begun
         player_id = data["values"]["player"]
+        print(self._board.getPlayer(player_id))
         local_id = self._local_player.getId()
         if player_id == local_id:
             print("It's your turn!")
@@ -235,10 +265,23 @@ class Client:
         quitter = (data["values"]["player"])
         self._board.removePlayer(quitter)
 
+    def _movedTo(self,data):
+        # handles GOTO message by updating a players position to tile specified
+        player = Board.getPlayer(data["values"]["player_id"])
+        space_position = data["values"]["tile"]
+        space = Board.getSpace(space_position)
+        player.setPosition(space_position)
+
+        print(player.getName() + " just moved to " + space.getText())
+
+
+
+
     def _bought(self, data):
         # update the owner of some space in board to be player with given id
         player = Board.getPlayer(data["values"]["player_id"])
         space = Board.getSpace(data["values"]["tile"])
+        print(player.getName() + " just bought '" + space.getText() + "' for " + str(space.getPrice()))
         player.addProperty(space)
 
     def _paid(self, data):
