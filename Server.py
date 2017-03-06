@@ -287,7 +287,7 @@ class Server:
     def buyRequest(self, data, sock):
         data = {
             "command": "BUY?",
-            "vales": {}
+            "values": {}
         }
         self._send_answer_tcp(data, sock)
 
@@ -301,7 +301,7 @@ class Server:
         return new_space
 
     def pass_go(self,sock):
-        self.pay(self.game["socket_to_id"][sock], None, 200, sock)
+        self.pay(None, self.game["socket_to_id"][sock], 200, sock)
 
     def _handle_card(self, card, sock):
         card_text = card.getText()
@@ -336,17 +336,17 @@ class Server:
 
     def _proccess_position(self, tile, sock):
         print("process",1)
-        if tile == -1:
-            tile = self.game["board"].getJailposition()
-
         board = self.game["board"]
-        space = board.getSpace(tile)
-        what = space.getType()
+        if tile == -1:
+            what = "GOTOJAIL"
+        else:
+            space = board.getSpace(tile)
+            what = space.getType()
 
         if what == "DECK":
             card = space.drawCard()
-            self._handle_card(card)
-        if what == "GO":
+            self._handle_card(card,sock)
+        elif what == "GO":
             self.pass_go(sock)
         elif what == "PROPERTY":
             print("process", 2)
@@ -373,7 +373,7 @@ class Server:
             "command": "BOUGHT",
             "values": {
                 "player": player.getId(),
-                "tile": space.getId()
+                "tile": player.getPosition()
             }
         }
         self._push_notification(out)
@@ -392,14 +392,15 @@ class Server:
             # send BUY?
             self.buyRequest(None, sock)
             # wait for response
-            self.timer.start()
+            #self.timer.start()
             out = self._waitResponse("BUY", sock)
             if out == "timeout":
                 self._timeout = False
             else:
+                print("On property response:", out)
                 if out[0]["values"]["buy"]:
                     self.pay(player_id, None, cost, sock)
-                    self.buy(space, player)
+                    self._buy(space, player)
         else:
             #future possability of buying houses if you land on that space??
             pass

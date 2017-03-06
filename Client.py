@@ -6,6 +6,7 @@ from queue import Queue
 from Board import Board
 import time
 from select import select
+import traceback
 
 
 class Client:
@@ -134,6 +135,8 @@ class Client:
                                         self._handle_message(message)
                                     except ValueError:
                                         print("Invalid JSON string received: " + message)
+                                    except Exception as e:
+                                        traceback.format_exc()
 
                     except Exception as e:
                         print("TCP Error 1 ", e)
@@ -145,6 +148,7 @@ class Client:
     def _handle_message(self,data):
         #handles different messages from the server
         command = data["command"]
+        print("Command:", command)
         if command == "START":
             self._gameStart(data)
         elif command == "ROLL":
@@ -255,7 +259,7 @@ class Client:
         local_id = self._local_player.getId()
         if player_id == local_id:
             print("It's your turn!")
-            input("start roll?")
+            #input("start roll?")
             self.roll()
         else:
             print("It's",self._board.getPlayer(player_id).getName(),"'s turn!")
@@ -279,8 +283,8 @@ class Client:
 
     def _bought(self, data):
         # update the owner of some space in board to be player with given id
-        player = _board.getPlayer(data["values"]["player_id"])
-        space = _board.getSpace(data["values"]["tile"])
+        player = self._board.getPlayer(data["values"]["player"])
+        space = self._board.getSpace(data["values"]["tile"])
         print(player.getName() + " just bought '" + space.getText() + "' for " + str(space.getPrice()))
         player.addProperty(space)
 
@@ -301,7 +305,7 @@ class Client:
     def _jailed(self,data):
         # some player got sent to jail so change their jail status
         new_inmate = self._board.getPlayer(data["values"]["player"])
-        new_inmate.updateJailed(True)
+        new_inmate.updateJailed()
         
     def _sentchat(self, data):
         # send a message from the server to the textbox display
@@ -313,8 +317,10 @@ class Client:
 
     def _drewCard(self, data):
         # you drew a card so tell the GUI about it and check if you're on bail
+        print("Card ", data)
         card_text = data["values"]["text"]
         bail_status = data["values"]["is_bail"]
+        print("card_text:",card_text,"bail_status:",bail_status)
         if bail_status:
             self._local_player.updateBail(bail_status)
         self._sentchat({"player": None, "message": "You drew the following card: " + card_text})
