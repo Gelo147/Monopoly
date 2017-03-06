@@ -17,8 +17,8 @@ class Server:
     SERVICE_PORT = 44469
     BOARD_FILE = "text/full_board.txt"
     CLIENT_DECISION_TIME = 60
-    GO_CASH = 50
-    GETOUT = 200
+    GO_CASH = 200
+    GETOUT = 50
 
     def __init__(self, broadcast_port=None, service_port=None):
         self._game_over = False
@@ -337,7 +337,7 @@ class Server:
                 data["values"]["tile"] = 0
             else:
                 data["values"]["tile"] = int(where)
-
+            print("CARD SAYS GO TO",data)
             self.go_to(data, sock)
 
 
@@ -554,10 +554,11 @@ class Server:
         self.discover.join()
         data = {"command": "GAMEOVER"}
         self._push_notification(data)
+        print("sent game over message",data)
         data = {"command": "CHAT", "values":{"text":"Player " + players[0] + "wins" if len(players)<2 else "Draw"}}
         self._push_notification(data)
         self._game_over = True
-        sleep(3)
+        sleep(30)
         self.__init__()
 
 

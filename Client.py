@@ -2,7 +2,6 @@ from socket import *
 import json
 from threading import Thread
 from hashlib import sha256
-from queue import Queue
 from Board import Board
 import time
 from select import select
@@ -17,7 +16,7 @@ class Client:
 
     def __init__(self):
         # setup the client
-        self._connection_queue = Queue()
+        self._gameover = False
         self._socket = None
         #self._transmitter = Thread(target=self.addToQueue, args=())
         self._listener = Thread(target=self._message_listener, args =())
@@ -65,9 +64,6 @@ class Client:
             self.start()
         else:
             self.join(address,"player 2", "psswd2")
-
-        while True:
-            pass
         
     def poll(self):
         # used to discover any open games on the network
@@ -110,7 +106,7 @@ class Client:
             self._connection_queue.put(data)"""
 
     def _message_listener(self):
-        while True:
+        while not self._gameover:
             try:
                 connections, write, exception = select([self._socket], [], [], 0.05)
                 for con in connections:
@@ -230,7 +226,10 @@ class Client:
     
     def quit(self):
         # Tell the server that you wish to quit this game
-        pass
+        data = json.dumps({"command": "QUIT"})
+        data = self._socket.sendall(data.encode())
+        self._gameover = True
+
     
     """
     <---------- Updating local state based on Server messages ----------->
@@ -254,7 +253,7 @@ class Client:
         
     def _gameOver(self,data):
         print("Game over.")
-        exit()
+        self._gameover = True
 
     # Gui.start(board,local_player)
 
