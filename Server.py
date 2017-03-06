@@ -557,14 +557,14 @@ class Server:
         self._timeout = True
 
     def gameOver(self, players):
-        self.discover.join()
+        #self.discover.join()
+        data = {"command": "CHAT", "values": {"text": "Player " + str(players[0]) + "wins" if len(players) < 2 else "Draw"}}
+        self._push_notification(data)
         data = {"command": "GAMEOVER"}
         self._push_notification(data)
         print("sent game over message",data)
-        data = {"command": "CHAT", "values":{"text":"Player " + players[0] + "wins" if len(players)<2 else "Draw"}}
-        self._push_notification(data)
+        sleep(5)
         self._game_over = True
-        sleep(30)
         self.__init__()
 
 

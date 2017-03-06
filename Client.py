@@ -253,7 +253,7 @@ class Client:
         self._local_player = self._board.getPlayer(local_id)
         
     def _gameOver(self,data):
-        print("Game over.")
+        print("Game over!")
         self._gameover = True
 
     # Gui.start(board,local_player)
