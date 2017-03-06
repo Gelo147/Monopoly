@@ -567,6 +567,7 @@ class Server:
                                 self.game["last_action"]["rolled"] = True
                             else:
                                 self.game["last_action"]["rolled"] = False
+                                self.game["last_action"]["doubles"] += 1
                         else:
                             self.game["last_action"]["rolled"] = True
                         if not sentToJail:
