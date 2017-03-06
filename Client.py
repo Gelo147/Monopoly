@@ -279,8 +279,8 @@ class Client:
 
     def _bought(self, data):
         # update the owner of some space in board to be player with given id
-        player = Board.getPlayer(data["values"]["player_id"])
-        space = Board.getSpace(data["values"]["tile"])
+        player = self._board.getPlayer(data["values"]["player_id"])
+        space = self._board.getSpace(data["values"]["tile"])
         print(player.getName() + " just bought '" + space.getText() + "' for " + str(space.getPrice()))
         player.addProperty(space)
 
@@ -300,7 +300,7 @@ class Client:
 
     def _jailed(self,data):
         # some player got sent to jail so change their jail status
-        new_inmate = Board.getPlayer(data["values"]["player"])
+        new_inmate = self._board.getPlayer(data["values"]["player"])
         new_inmate.updateJailed(True)
         
     def _sentchat(self, data):
