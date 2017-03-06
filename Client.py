@@ -151,6 +151,8 @@ class Client:
         print("Command:", command)
         if command == "START":
             self._gameStart(data)
+        elif command == "GAMEOVER":
+            self._gameOver(data)
         elif command == "ROLL":
             self._rolled(data)
         elif command == "CHAT":
@@ -249,6 +251,10 @@ class Client:
         local_id = data["values"]["local"]
         self._board = Board(self.BOARD_FILE, players)
         self._local_player = self._board.getPlayer(local_id)
+        
+    def _gameOver(self,data):
+        print("Game over.")
+        exit()
 
     # Gui.start(board,local_player)
 
