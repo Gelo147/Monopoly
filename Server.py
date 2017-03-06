@@ -332,6 +332,7 @@ class Server:
             data = {"values": {}}
             print(data, "where: ", where)
             if where == "JAIL":
+                data["values"] = "JAIL"
                 self.sendJail(sock)
             elif where == "GO":
                 data["values"]["tile"] = 0
@@ -360,7 +361,6 @@ class Server:
             print("process", 2)
             self._onPropertySpace(space,sock)
         elif what == "GOTOJAIL":
-            self.sendJail(sock)
             self.sendJail(sock)
         elif what == "TAX":
             self.pay(self.game["socket_to_id"][sock], None, int(space.getFee()), sock)
@@ -458,6 +458,7 @@ class Server:
         # inform all players where one player is
         # {values: {palyer: int player_id, tile: int tile } }
         player_id = self.game["socket_to_id"][sock]
+        jail = False
         d = {
             "command": "GOTO",
             "values": {
@@ -470,13 +471,18 @@ class Server:
             d["values"]["tile"] = self._move_player(player_id, sum(data["values"]["roll"]))
             p.setPosition(d["values"]["tile"])
         elif "JAIL" in data["values"]:
-            d["values"]["tile"] = -1
-            p.setPosition(self.game["board"].getJailPosition())
+            jail = True
+            d["values"]["tile"] = self.game["board"].getJailPosition()
+            p.setPosition(d["values"]["tile"])
         else:
             print("GO TO DATA:",data)
             d["values"]["tile"] = data["values"]["tile"]
+            p.setPosition(d["values"]["tile"])
         self._push_notification(d)
-        self._proccess_position(d["values"]["tile"], sock)
+        if not jail:
+            self._proccess_position(d["values"]["tile"], sock)
+        else:
+            self._proccess_position(-1, sock)
 
     def pay(self,p_from,p_to,amount,sock):
         # transaction between player and player or bank and player if

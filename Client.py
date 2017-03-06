@@ -135,7 +135,7 @@ class Client:
                                         traceback.format_exc()
 
                     except Exception as e:
-                        print("TCP Error 1 ", e)
+                        print("TCP Error 1 ",traceback.format_exc(), e)
             except KeyboardInterrupt:
                 return
             except Exception as e:
@@ -158,6 +158,7 @@ class Client:
         elif command == "BUY?":
             self.buy(True)
         elif command == "BOUGHT":
+            print("BOUGHT BUG",data)
             self._bought(data)
         elif command == "GOTO":
             self._movedTo(data)
@@ -328,7 +329,7 @@ class Client:
         print("card_text:",card_text,"bail_status:",bail_status)
         if bail_status:
             self._local_player.updateBail(bail_status)
-        self._sentchat({"player": None, "message": "You drew the following card: " + card_text})
+        self._sentchat({"values":{"player": None, "message": "You drew the following card: " + card_text}})
 
     def _rolled(self,data):
         die1, die2 = data["values"]["roll"][0] ,data["values"]["roll"][1]
