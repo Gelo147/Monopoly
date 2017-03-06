@@ -13,7 +13,7 @@ class Client:
     BROADCAST_PORT = 44470
     TRANSMIT_PORT = 44469
     BROADCAST_ADDRESS = "255.255.255.255"
-    BOARD_FILE = "text/board.txt"
+    BOARD_FILE = "text/full_board.txt"
 
     def __init__(self):
         # setup the client

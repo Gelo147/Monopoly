@@ -6,16 +6,20 @@ from select import select
 from Board import Board
 from StupidException import StupidException
 from queue import Queue
+from time import sleep
 
 
 class Server:
 
     BROADCAST_PORT = 44470
     SERVICE_PORT = 44469
-    BOARD_FILE = "text/board.txt"
+    BOARD_FILE = "text/full_board.txt"
     CLIENT_DECISION_TIME = 60
+    GO_CASH = 50
+    GETOUT = 200
 
     def __init__(self, broadcast_port=None, service_port=None):
+        self._game_over = False
         self.incomming = False
         self._timeout = False
         self.connection_queue = Queue()
@@ -51,7 +55,7 @@ class Server:
             self.incomming_thread.start()
 
     def _incomming_messages(self,):
-        while True:
+        while not self._game_over:
             try:
                 connections, write, exception = select(list(self.game["socket_to_id"]), [], [], 0.05)
                 for con in connections:
@@ -89,7 +93,7 @@ class Server:
         self.service_sock.bind(('', port))
         self.service_sock.listen(10)
         print("Service Listening")
-        while True:
+        while not self._game_over:
             try:
                 connections, write, exception = select([self.service_sock], [], [], 0.05)
                 for con in connections:
@@ -123,7 +127,7 @@ class Server:
         broadcastsock.bind(('', broadcast_port))
         broadcastsock.settimeout(1)
         print("Broadcast Ready")
-        while True:
+        while not self._game_over:
             try:
                 data, address = broadcastsock.recvfrom(1024)
                 data = loads(data.decode())
@@ -301,7 +305,7 @@ class Server:
         return new_space
 
     def pass_go(self,sock):
-        self.pay(None, self.game["socket_to_id"][sock], 200, sock)
+        self.pay(None, self.game["socket_to_id"][sock], Server.GO_CASH, sock)
 
     def _handle_card(self, card, sock):
         card_text = card.getText()
@@ -316,9 +320,9 @@ class Server:
         self._push_notification(data)
 
         if card_type == "COLLECT":
-            self.pay(None, self.game["socket_to_id"][sock], int(space.getValue()), sock)
+            self.pay(None, self.game["socket_to_id"][sock], int(card.getValue()), sock)
         elif card_type == "PAY":
-            self.pay(self.game["socket_to_id"][sock], None, int(space.getValue()), sock)
+            self.pay(self.game["socket_to_id"][sock], None, int(card.getValue()), sock)
         elif card_type == "BAIL":
             self.game["board"].getPlayer(["socket_to_id"][sock]).updateBail(True)
         elif card_type == "GOTO":
@@ -352,6 +356,7 @@ class Server:
             print("process", 2)
             self._onPropertySpace(space,sock)
         elif what == "GOTOJAIL":
+            self.sendJail(sock)
             self.sendJail(sock)
         elif what == "TAX":
             self.pay(self.game["socket_to_id"][sock], None, int(space.getFee()), sock)
@@ -485,9 +490,9 @@ class Server:
                     "amount": amount
                 }
                 }
-        if p_to:
+        if p_to is not None:
             self.game["board"].getPlayer(p_to).addMoney(amount)
-        if p_from:
+        if p_from is not None:
             self.game["board"].getPlayer(p_from).takeMoney(amount)
         self. _push_notification(data)
 
@@ -540,14 +545,34 @@ class Server:
         print("Timeout")
         self._timeout = True
 
+    def gameOver(self, players):
+        self.discover.join()
+        data = {"command": "GAMEOVER"}
+        self._push_notification(data)
+        data = {"command": "CHAT", "values":{"text":"Player " + players[0] + "wins" if len(players)<2 else "Draw"}}
+        self._push_notification(data)
+        self._game_over = True
+        sleep(3)
+        self.__init__()
+
+
+
     def _playGame(self):
         while True:
             print("game x")
             current_turn_sock = self.game["id_to_socket"][self.game["turn"]]
+            print(self.game["board"].getPlayer(self.game["turn"])," : ",self.game["board"].getPlayer(self.game["turn"]).isBankrupt())
             try:
-                if (not self.game["last_action"]["rolled"]) and (current_turn_sock is not None):
+                count_not_bankrupt = []
+                for player in self.game["board"].getPlayerList():
+                    if not player.isBankrupt():
+                        count_not_bankrupt += [player]
+                if len(count_not_bankrupt) < 2:
+                    #GAME OVER
+                    self.gameOver(count_not_bankrupt)
+                    break
+                if (not self.game["last_action"]["rolled"]) and (current_turn_sock is not None) and (not self.game["board"].getPlayer(self.game["turn"]).isBankrupt()) :
                     print("game y")
-
                     sentToJail = False
                     self.turn(None, None)
                     #self.timer.start()
@@ -562,6 +587,8 @@ class Server:
                         print("game z")
                         roll = self.roll({}, current_turn_sock)
                         if roll[0] == roll[1]:
+                            if self.game["board"].getPlayer(self.game["turn"]).isJailed():
+                                self.game["board"].getPlayer(self.game["turn"]).updateJailed()
                             if self.game["last_action"]["doubles"] == 3:
                                 self.sendJail(current_turn_sock)
                                 sentToJail = True
@@ -570,6 +597,9 @@ class Server:
                                 self.game["last_action"]["rolled"] = False
                                 self.game["last_action"]["doubles"] += 1
                         else:
+                            if self.game["board"].getPlayer(self.game["turn"]).isJailed():
+                                self.pay(self.game["turn"], None, Server.GETOUT, None)
+                                self.game["board"].getPlayer(self.game["turn"]).updateJailed()
                             self.game["last_action"]["rolled"] = True
                         if not sentToJail:
                             print("prepping a goto")
@@ -586,7 +616,7 @@ class Server:
                         self.game["turn"] = 0
                     self.game["last_action"]["last_roll"] = []
             except Exception as e:
-                print(e)
+                print("Exception .... WTF???       ",e)
 
 if __name__ == '__main__':
     Server()

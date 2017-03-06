@@ -22,12 +22,13 @@ and property they currently own"""
     def addMoney(self,money):
         #add cash directy to current players balance
         self._balance+=money
-        
+
     def takeMoney(self,money):
         #take cash away from current players balance and update bankruptcy status
         self._balance-=money
         if self._balance <= 0:
             self._bankrupt = True
+            print(self, "... WENT BANKRUPT")
         
     def getName(self):
         #get the players name
@@ -95,4 +96,4 @@ and property they currently own"""
     def isBankrupt(self):
         #check if the current player is bankrupt
         return self._bankrupt
-        
+

@@ -101,9 +101,14 @@ class Board:
         # returns the player object with given id
         return self._players[player_id]
 
-    def removePlayer(self, player_id):
-        # removes player object from the list of players
-        self._players[player_id] = None
+    def removePlayer(self,player_id):
+        # take a player out of the game and handle all their missing properties
+        player = self.getPlayer(player_id)
+        player.takeMoney(player.getBalance())
+        groups = player.getProperties()
+        for group in groups:
+            for space in groups[group][0]:
+                player.removeProperty(space)
 
     def getPlayerList(self):
         # returns a copy of the list of players in game
