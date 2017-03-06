@@ -7,6 +7,8 @@ from Board import Board
 from StupidException import StupidException
 from queue import Queue
 from time import sleep
+import sys
+import traceback
 
 
 class Server:
@@ -324,16 +326,18 @@ class Server:
         elif card_type == "PAY":
             self.pay(self.game["socket_to_id"][sock], None, int(card.getValue()), sock)
         elif card_type == "BAIL":
-            self.game["board"].getPlayer(["socket_to_id"][sock]).updateBail(True)
+            self.game["board"].getPlayer(self.game["socket_to_id"][sock]).updateBail(True)
         elif card_type == "GOTO":
             where = card.getValue()
             data = {"values": {}}
+            print(data, "where: ", where)
             if where == "JAIL":
                 self.sendJail(sock)
             elif where == "GO":
                 data["values"]["tile"] = 0
             else:
-                data["values"]["tile"] = where
+                data["values"]["tile"] = int(where)
+
             self.go_to(data, sock)
 
 
@@ -465,10 +469,11 @@ class Server:
         if "roll" in data["values"]:
             d["values"]["tile"] = self._move_player(player_id, sum(data["values"]["roll"]))
             p.setPosition(d["values"]["tile"])
-        elif "jail" in data["values"]:
+        elif "JAIL" in data["values"]:
             d["values"]["tile"] = -1
             p.setPosition(self.game["board"].getJailPosition())
         else:
+            print("GO TO DATA:",data)
             d["values"]["tile"] = data["values"]["tile"]
         self._push_notification(d)
         self._proccess_position(d["values"]["tile"], sock)
@@ -566,9 +571,10 @@ class Server:
                 count_not_bankrupt = []
                 for player in self.game["board"].getPlayerList():
                     if not player.isBankrupt():
+                        print(1)
                         count_not_bankrupt += [player]
                 if len(count_not_bankrupt) < 2:
-                    #GAME OVER
+                    print("GAME OVER")
                     self.gameOver(count_not_bankrupt)
                     break
                 if (not self.game["last_action"]["rolled"]) and (current_turn_sock is not None) and (not self.game["board"].getPlayer(self.game["turn"]).isBankrupt()) :
@@ -616,7 +622,7 @@ class Server:
                         self.game["turn"] = 0
                     self.game["last_action"]["last_roll"] = []
             except Exception as e:
-                print("Exception .... WTF???       ",e)
+                print("Exception .... WTF???       ",traceback.print_exc(),e)
 
 if __name__ == '__main__':
     Server()
