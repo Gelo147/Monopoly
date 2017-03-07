@@ -65,7 +65,7 @@ class Client:
         else:
             self.join(address,"player 2", "psswd2")
         
-    def poll(self):
+  def poll(self):
         # used to discover any open games on the network
         s = socket(AF_INET, SOCK_DGRAM)
         s.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
@@ -75,9 +75,14 @@ class Client:
         while data == None:
             data, addr = s.recvfrom(1024)
             data = json.loads(data.decode())
-            print("Games found:",data)
+            pw = ""
+            playerlist = data["values"]["players"]
+            password_protected = data["values"]["password"]
+            if password_protected:
+                pw = "[PASSWORD]"
+            game_desc = playerlist[0] + "'s game. ["+str(len(playerlist))+" players]" + pw
         s.close()
-        return addr[0]
+        self._open_games += [(game_desc,addr[0])]
 
     def join(self, address, username, password):
         # ask to join a specific game with username and password
@@ -95,6 +100,7 @@ class Client:
 
     def listGames(self):
         # returns a list of games client has heard about
+        self.poll()
         return self._open_games
 
     """def addToQueue(self):
