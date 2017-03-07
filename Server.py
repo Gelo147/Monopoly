@@ -17,8 +17,8 @@ class Server:
     SERVICE_PORT = 44469
     BOARD_FILE = "text/full_board.txt"
     CLIENT_DECISION_TIME = 60
-    GO_CASH = 200
-    GETOUT = 50
+    GO_CASH = 50
+    GETOUT = 200
 
     def __init__(self, broadcast_port=None, service_port=None):
         self._game_over = False
@@ -229,7 +229,8 @@ class Server:
             "values": {
                 "game": {
                     "name": None,
-                    "players": None
+                    "players": None,
+                    "password": None,
                 }
             }
         }
