@@ -591,7 +591,7 @@ class Server:
 
     def gameOver(self, players):
         #self.discover.join()
-        data = {"command": "CHAT", "values": {"text": "Player " + str(players[0]) + "wins" if len(players) < 2 else "Draw"}}
+        data = {"command": "CHAT", "values": {"text": "Player " + str(players[0]) + " wins!" if len(players) < 2 else "Draw"}}
         self.chat(data,None)
         data = {"command": "GAMEOVER"}
         self._push_notification(data)
