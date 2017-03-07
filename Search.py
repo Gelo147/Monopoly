@@ -10,6 +10,8 @@ class Search(Frame):
         self.name = name
         self.games = None
         self.addresses = []
+        self.hosts = []
+        self.selected = None
 
         self.index = 1
 
@@ -36,12 +38,19 @@ class Search(Frame):
 
     #Finds and displays games
     def refreshgames(self):
+        for i in range(1, self.index):
+            print(i)
+            self.searchlist.delete(i)
+        if self.index == 1:
+            self.searchlist.delete(1)
         self.selected = None
         self.addresses = []
+        self.hosts = []
         self.index = 1
         self.games = self.client.listGames()
         for game in self.games:
             self.addresses.append(game[1])
+            self.hosts.append(game[0])
             self.searchlist.insert(self.index, "%s" % (game[0]))
             self.index += 1
 
@@ -49,6 +58,7 @@ class Search(Frame):
         w = evt.widget
         index = int(w.curselection()[0])
         self.selected = self.addresses[index-1]
+        self.selectedhost = self.hosts[index-1]
     
     #Guessing client/server stuff happens here
     def selectgame(self):
@@ -56,8 +66,8 @@ class Search(Frame):
             return
         else:
             self.client.join(self.selected, self.name, None)
-            self.destroy()
-            lobby = Lobby(self.myparent, self.client, self.name)
+            self.maincontainer.destroy()
+            lobby = Lobby(self.myparent, self.client, self.name, self.selectedhost)
 
     #Method to add things to box, such as found games
     def insertobox(self, data):

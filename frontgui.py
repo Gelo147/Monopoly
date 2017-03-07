@@ -87,6 +87,7 @@ class Front(Frame):
                 lobby = Lobby(self.myparent, self.client, name, name)
             elif self.joingametrue:
                 self.main_container.destroy()
+                self.joining.destroy()
                 search = Search(self.myparent, self.client, name)
 
     def cancelname(self):

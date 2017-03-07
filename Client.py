@@ -85,7 +85,7 @@ class Client:
                 pw = "[PASSWORD]"
             if playerlist:
                 game_desc = playerlist[0] + "'s game. [" + str(len(playerlist)) + " players]" + pw
-                self._open_games += [(game_desc, addr[0])]
+                self._open_games = [(game_desc, addr[0])]
             else:
                 game_desc = "No players"
                 self._open_games = [(game_desc, addr[0])]
