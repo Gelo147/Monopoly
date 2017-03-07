@@ -1,108 +1,151 @@
 from socket import *
 from json import dumps, loads
-from threading import Thread
+from threading import Thread, Timer
 from random import randint
 from select import select
 from Board import Board
 from StupidException import StupidException
 from queue import Queue
+from time import sleep
+import sys
+import traceback
+
 
 class Server:
+
     BROADCAST_PORT = 44470
     SERVICE_PORT = 44469
-    BOARD_FILE  = "board.txt"
-    def __init__(self, broadcast_port=None, service_port=None):
+    BOARD_FILE = "text/full_board.txt"
+    CLIENT_DECISION_TIME = 60
+    GO_CASH = 200
+    GETOUT = 50
 
+    def __init__(self, broadcast_port=None, service_port=None):
+        self._game_over = False
+        self.incomming = False
+        self._timeout = False
         self.connection_queue = Queue()
-        # <---------- NOTE ---------->
-        # Does the Board object store Payer objects?
-        # <---------- NOTE ---------->
+        self.timer = Timer(60, self.time)
         self.game = {
             "name": "Monopoly",
             "players": [],  # player names
-            "comms": {},  # socket: id map
-            "comms_rev": {},  # id: socket map
+            "socket_to_id": {},  # socket: id map
+            "id_to_socket": {},  # id: socket map
             "board": None,
             "top_id": 0,
-            "started": True,
+            "started": False,
             "turn": 0,
             "last_action": {
                 "rolled": False,
-                "last_roll" : [],
-                "doubles" : 0
+                "last_roll": [],
+                "doubles": 0
             }
         }
 
         self.discover = Thread(target=self._open_broadcast,
-                               args=(broadcast_port if broadcast_port is not None else Server.BROADCAST_PORT,))
+                               args=(broadcast_port if broadcast_port is not None else Server.BROADCAST_PORT, ))
         self.discover.start()
 
-        self.server = Thread(target=self._open_service,
-                             args=((service_port if service_port is not None else Server.SERVICE_PORT),))
-        self.server.start()
+        self.service = Thread(target=self._service,
+                             args=((service_port if service_port is not None else Server.SERVICE_PORT), ))
+        self.service.start()
 
-    def _open_service(self, port):
-        self.service_sock = socket()
-        self.service_sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        # self.service_sock.setblocking(0)
-        self.service_sock.bind(('', port))
-        self.service_sock.listen(10)
-        print("Service Listening")
-        while True:
+    def _run_incomming(self):
+        if not self.incomming:
+            self.incomming_thread = Thread(target=self._incomming_messages,
+                              args=())
+            self.incomming_thread.start()
+
+    def _incomming_messages(self,):
+        while not self._game_over:
             try:
-                connections, write, exception = select([self.service_sock],[],[],0.05)
+                connections, write, exception = select(list(self.game["socket_to_id"]), [], [], 0.05)
                 for con in connections:
-                    client_sock, address = con.accept()
-                    data = loads(client_sock.recv(4096).decode())
-                    print("Data: ",data)
+                    data = con.recv(4096).decode()
                     try:
-                        if data["command"] == "CREATE":
-                            action = self.create_game
-                        elif data["command"] == "JOIN":
-                            action = self.join_game
-                        elif data["command"] == "CHAT":
-                            action = self.chat
-                        elif data["command"] == "TURN":
-                            action = self.turn
-                        elif data["command"] == "START":
-                            action = self.start
-                        elif data["command"] == "QUIT":
-                            action = self.quit
-                        else:
-                            self.connection_queue.put((data,client_sock))
-                            raise StupidException()
-                        action(data,client_sock)
-                    except Exception as e:
-                        print("TCP Error 1 ",e)
-                        client_sock.close()
+                        data = loads(data)
+                        self._enqueueMessage(data,con)
+                    except ValueError:
+                        if data:
+                            if len(data.split('}{')) == 1:
+                                print("Invalid JSON string received: " + data)
+                            else:
+                                print("Combined JSON payloads received: " + data)
+                                messages = data.split('}{')
+                                messages[0] += '}'
+                                messages[-1] = '{' + messages[-1]
+                                for i, payload in enumerate(messages[1: -1], 1):
+                                    messages[i] = '{' + payload + '}'
+                                for message in messages:
+                                    try:
+                                        message = loads(message)
+                                        self._enqueueMessage(message,con)
+                                    except ValueError:
+                                        print("Invalid JSON string received: " + message)
+                                    except Exception as e:
+                                        traceback.format_exc()
             except timeout:
                 pass
             except StupidException:
                 pass
+            except KeyboardInterrupt:
+                return
             except Exception as e:
-                print("TCP Error 2 ",e)
-    """
-----------------NOTE will use somewhere NOTE ---------------------------------------------
-    def validate_action(self, data, client_sock):
-        if self.game["turn"] == self.game["comms"][client_sock]:
-            if data["command"] == "ROLL" and not self.game["rolled"]:
-                action = self.roll
-            elif data["command"] == "BUY":
-                action = self.buy
-            elif data["command"] == "SELL":
-                action = self.sell
-            elif data["command"] == "ROLL":
-                action = self.roll
-            elif data["command"] == "GOTO":
-                action = self.go_to
-            elif data["command"] == "PAY":
-                action = self.pay
-            elif data["command"] == "CARD":
-                action = self.card
+                print("TCP Error 2 ", e)
+                return 0
+
+    def _enqueueMessage(self,data,con):
+        print("Data: ", data)
+        try:
+            if data["command"] == "CHAT":
+                action = self.chat
+            elif data["command"] == "TURN":
+                action = self.turn
+            elif data["command"] == "START":
+                action = self.start
+            elif data["command"] == "QUIT":
+                action = self.quit
             else:
-                action = self.broadcast_error
-------------------------------------------------------------------------------------------------
-    """
+                self.connection_queue.put((data, con))
+                raise StupidException("Skip action call")
+            action(data, con)
+        except Exception as e:
+            print("TCP Error 1 ", e)
+            # con.close()
+
+    def _service(self,port):
+        self.service_sock = socket()
+        self.service_sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        self.service_sock.bind(('', port))
+        self.service_sock.listen(10)
+        print("Service Listening")
+        while not self._game_over:
+            try:
+                connections, write, exception = select([self.service_sock], [], [], 0.05)
+                for con in connections:
+                    client_sock, address = con.accept()
+                    data = loads(client_sock.recv(4096).decode())
+                    print("Data: ", data)
+                    try:
+                        if data["command"] == "JOIN":
+                            action = self.join_game
+                        elif data["command"] == "CREATE":
+                            action = self.create_game
+                        else:
+                            raise StupidException("Skip action call")
+                        action(data, client_sock)
+                    except Exception as e:
+                        print("TCP Error 1 ", e)
+                        #con.close()
+            except timeout:
+                pass
+            except StupidException:
+                pass
+            except KeyboardInterrupt:
+                return
+            except Exception as e:
+                print("TCP Error 2 ", e)
+
     def _open_broadcast(self, broadcast_port):
         broadcastsock = socket(AF_INET, SOCK_DGRAM)
         broadcastsock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
@@ -110,7 +153,7 @@ class Server:
         broadcastsock.bind(('', broadcast_port))
         broadcastsock.settimeout(1)
         print("Broadcast Ready")
-        while True:
+        while not self._game_over:
             try:
                 data, address = broadcastsock.recvfrom(1024)
                 data = loads(data.decode())
@@ -121,28 +164,30 @@ class Server:
                 action(data, broadcastsock, address)
             except timeout:
                 pass
+            except KeyboardInterrupt:
+                return
             except Exception as e:
-                print("Broadcast Error ",e)
+                print("Broadcast Error ", e)
 
     def broadcast_error(self, data, sock, address=None):
         # yes name is wrong... all errors go through here
         # {command:error}
         data = {"command": "ERROR",
                 "values": "Unknown command"}
-        self._send_answer(data, sock, address) if address != None else self._send_answer_tcp(data, sock)
+        self._send_answer(data, sock, address) if address else self._send_answer_tcp(data, sock)
 
     def _send_answer(self, data, sock, address):
         sock.sendto(dumps(data).encode(), address)
         print("Sent")
 
     def _send_answer_tcp(self,data, sock):
-        sock.send(dumps(data).encode())
+        sock.sendall(dumps(data).encode())
         print("Sent tcp")
 
     def _push_notification(self,data,exclude=None):
-        for sock in self.game["comms"]:
+        for sock in self.game["socket_to_id"]:
             if sock != exclude:
-                sock.send(dumps(data).encode())
+                sock.sendall(dumps(data).encode())
                 print("Sent notification")
 
     """
@@ -155,23 +200,21 @@ class Server:
         # called by request handler <function=_handle_broadcast> when
         # incoming message has <var=command> = CREATE
         # Returns: Success / Failure message
-        if len(self.game["players"]) < 6:
-            self.game["comms"][self.game["top_id"]] = sock
-            self.game["comms_rev"][sock] = self.game["top_id"]
-            #add player to the player list
+        if len(self.game["players"]) < 1:
+            self.game["id_to_socket"][self.game["top_id"]] = sock
+            self.game["socket_to_id"][sock] = self.game["top_id"]
+            # add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
-            #print("=" * 50)
-            #print(self.game)
-            #print("="*50)
             data = {
                 "command": "CREATE",
                 "values": "1",
             }
+            self._run_incomming()
         else:
             data = {
-                "command": "ERROR",
-                "values": "Game already created try joining",
+                "command": "CREATE",
+                "values": "0",
             }
         self._send_answer_tcp(data,sock)
 
@@ -183,30 +226,37 @@ class Server:
             "command": "GAME",
             "values": {
                 "game": {
-                    "name": self.game["name"],
-                    "players": [player for player in self.game["players"]]
+                    "name": None,
+                    "players": None
                 }
             }
         }
+        if len(self.game["players"]) > 0:
+            data["game"] = {
+                "name": self.game["name"],
+                "players": self.game["players"],
+            }
         self._send_answer(data, sock, address)
 
     def join_game(self, data, sock):
         # called by request handler <function=_handle_broadcast> when
         # incoming message has <var=command> = JOIN
         # Returns: Success / Failure message
-        success = 0
-        if not self.game["started"] and (self.game["top_id"] < 6):
-            self.game["comms"][self.game["top_id"]] = sock
-            self.game["comms_rev"][sock] = self.game["top_id"]
+        success = "0"
+        if not self.game["started"] and (self.game["top_id"] < 6 and self.game["top_id"] > 0 ):
+            self.game["id_to_socket"][self.game["top_id"]] = sock
+            self.game["socket_to_id"][sock] = self.game["top_id"]
             # add player to the player list
             self.game["players"].append(data["values"]["username"])
             self.game["top_id"] += 1
-            success = 1
+            success = "1"
+            print(">>>>JOIN : ", self.game["players"])
+            self._run_incomming()
         data = {
             "command": "JOIN",
             "values": success,
         }
-        self._push_notification(data)
+        self._send_answer_tcp(data,sock)
 
 
     """
@@ -215,32 +265,38 @@ class Server:
         "missing a word" to an action performed as a result of a request
     <-------------------------------------------------------------------->
     """
-    def start(self,data, sock):
-        if self.game["comms"][sock] == 0:
+    def start(self, data, sock):
+        if self.game["socket_to_id"][sock] == 0:
             if self.game["top_id"] >= 2:
                 self.game["started"] = True
-                self.game["board"] = Board(Server.BOARD_FILE, self.game["players"])
+                players = [(i, self.game["players"][i]) for i in range(len(self.game["players"]))]
+                self.game["board"] = Board(Server.BOARD_FILE, players)
                 data = {
                     "command": "START",
                     "values": {
-                        "players": self.game["players"],
+                        "players": players,
+                        "local": None,
                     }
                 }
+                for socket in self.game["socket_to_id"].keys():
+                    data["values"]["local"] = self.game["socket_to_id"][socket]
+                    self._send_answer_tcp(data,socket)
                 self._playGame()
             else:
                 data = {
                     "command": "ERROR",
                     "values": "You can't play on your own."
                 }
+                self._push_notification(data)
         else:
             data = {
                 "command": "CHAT",
                 "values": {
                     "text": "Start the game already!!",
-                    "player": self.game["players"][self.game["comms"][sock]]
+                    "player": self.game["players"][self.game["socket_to_id"][sock]]
                 }
             }
-        self._push_notification(data,sock)
+            self._push_notification(data, sock)
 
     def roll(self, data, sock):
         # called by request handler <function=_handle_request> when
@@ -249,8 +305,8 @@ class Server:
         # Returns: ROLL message
         data = {
             "command": "ROLL",
-            "values":{
-                "roll": [randint(1,7), randint(1,7)],
+            "values": {
+                "roll": [randint(1, 6), randint(1, 6)],
             }
         }
         self.game["last_action"]["rolled"] = True
@@ -261,100 +317,87 @@ class Server:
     def buyRequest(self, data, sock):
         data = {
             "command": "BUY?",
-            "vales": {}
+            "values": {}
         }
         self._send_answer_tcp(data, sock)
 
     def _move_player(self,playerID, spaces):
-        current_space = self.game["board"].getPlayer(playerID)
+        current_space = self.game["board"].getPlayer(playerID).getPosition()
         if (current_space + spaces) > self.game["board"].getSize():
             new_space = (current_space + spaces) - self.game["board"].getSize()
-            self.pass_go(self.game["comms_rev"][playerID])
+            self.pass_go(self.game["id_to_socket"][playerID])
         else:
             new_space = current_space + spaces
         return new_space
 
     def pass_go(self,sock):
+        self.pay(None, self.game["socket_to_id"][sock], Server.GO_CASH, sock)
+
+    def _handle_card(self, card, sock):
+        card_text = card.getText()
+        card_type = card.getType()
         data = {
-            "command": "PAY",
+            "command": "CARD",
             "values": {
-                "to": self.game["comms"][sock],
-                "from": None,
-                "amount": 200
+                "text": card_text,
+                "is_bail": (True if card_type == "BAIL" else False),
             }
         }
-        self.pay(data, sock)
+        self._push_notification(data)
 
-    def _proccess_position(self, tile, sock):
-        board = self.game["board"]
-        space = board.getSpace(tile)
-        what = space.getType()
-
-        if what == "DECK":
-            #turn deck card into a normal space
-            space = space.drawCard()
-            # -------------------------NOTE----------------
-            # send CARD mesage to clients
-            # ----------------------------------------------
-            card = {
-                "text":str(space)
-                "is_bail"
-            }
-            data = {"command": "CARD", "values": card}
-            self._push_notification(data)
-        if what == "GO":
-            self.pass_go(sock)
-        elif what == "PROPERTY":
-            self._onPropertySpace(space,sock)
-        elif what == "GOTOJAIL":
-            pass
-        elif what == "TAX" or what == "PAY":
-            data = {"command": "PAY",
-                    "values": {
-                        "from": self.game["comms"][sock],
-                        "to": None,
-                        "amount": int(space.getValue())
-                    }
-            }
-            self.pay(data,sock)
-        elif what == "COLLECT":
-            data = {"command": "PAY",
-                    "values": {
-                        "to": self.game["comms"][sock],
-                        "from": None,
-                        "amount": int(space.getValue())
-                    }
-            }
-            self.pay(data, sock)
-        elif what == "BAIL":
-            data = {
-                "command": "CARD",
-                "values": {
-                        "text": str(space),
-                        "is_bail": True,
-                    }
-                }
-
-            self._push_notification(data)
-        elif what == "GOTO":
-            where = space.getValue()
+        if card_type == "COLLECT":
+            self.pay(None, self.game["socket_to_id"][sock], int(card.getValue()), sock)
+        elif card_type == "PAY":
+            self.pay(self.game["socket_to_id"][sock], None, int(card.getValue()), sock)
+        elif card_type == "BAIL":
+            self.game["board"].getPlayer(self.game["socket_to_id"][sock]).updateBail(True)
+        elif card_type == "GOTO":
+            where = card.getValue()
             data = {"values": {}}
+            print(data, "where: ", where)
             if where == "JAIL":
-                pass
+                data["values"] = "JAIL"
+                self.sendJail(sock)
             elif where == "GO":
                 data["values"]["tile"] = 0
             else:
-                data["values"]["tile"] = where
-            self.go_to(data,sock)
+                data["values"]["tile"] = int(where)
+            print("CARD SAYS GO TO",data)
+            self.go_to(data, sock)
+
+
+
+    def _proccess_position(self, tile, sock):
+        print("process",1)
+        board = self.game["board"]
+        if tile == -1:
+            what = "GOTOJAIL"
+        else:
+            space = board.getSpace(tile)
+            what = space.getType()
+
+        if what == "DECK":
+            card = space.drawCard()
+            self._handle_card(card,sock)
+        elif what == "GO":
+            self.pass_go(sock)
+        elif what == "PROPERTY":
+            print("process", 2)
+            self._onPropertySpace(space,sock)
+        elif what == "GOTOJAIL":
+            self.sendJail(sock)
+        elif what == "TAX":
+            self.pay(self.game["socket_to_id"][sock], None, int(space.getFee()), sock)
         else:
             pass #error
 
     def _waitResponse(self, command, sock):
-        while True:
+        while not self._timeout:
             message = self.connection_queue.get()
             if message:
                 if sock == message[1] and message[0]["command"] == command:
                     return message
+        return "timeout"
 
     def _buy(self, space, player):
         player.addProperty(space)
@@ -363,7 +406,7 @@ class Server:
             "command": "BOUGHT",
             "values": {
                 "player": player.getId(),
-                "tile": space.getId()
+                "tile": player.getPosition()
             }
         }
         self._push_notification(out)
@@ -371,51 +414,40 @@ class Server:
 
     def _onPropertySpace(self, space, sock):
         cost = int(space.getPrice())
-        player_id = self.game["comms"][sock]
+        player_id = self.game["socket_to_id"][sock]
         owner_id = space.getOwner()
         player = self.game["board"].getPlayer(player_id)
         if (owner_id is not None) and (owner_id != player_id):
             # someone else owns the space so player pays them
             cost = int(space.getRent())
-            data = {
-                "command": "PAY",
-                "values": {
-                    "from": player_id,
-                    "to": owner_id,
-                    "ammount": cost
-                }
-            }
-            self.pay(data, None)
+            self.pay(player_id, owner_id, cost, sock)
         elif owner_id is None and player.getBalance() > cost:
             # send BUY?
             self.buyRequest(None, sock)
             # wait for response
-            message = self._waitResponse("BUY", sock)
-            if message[0]["values"]["buy"]:
-                data = {
-                    "command": "PAY",
-                    "values": {
-                        "from": player.getId(),
-                        "to": None,
-                        "ammount": cost
-                    }
-                }
-                self.pay(data, None)
-                self.buy(space, player)
+            #self.timer.start()
+            out = self._waitResponse("BUY", sock)
+            if out == "timeout":
+                self._timeout = False
+            else:
+                print("On property response:", out)
+                if out[0]["values"]["buy"]:
+                    self.pay(player_id, None, cost, sock)
+                    self._buy(space, player)
         else:
             #future possability of buying houses if you land on that space??
             pass
 
     def remove_player(self, sock):
-        pid = self.game["comms"][sock]
-        self.game["comms"].pop(sock)
-        self.game["comms_rev"].pop(pid)
-        self.game["board"].removePlayer()
+        pid = self.game["socket_to_id"][sock]
+        self.game["socket_to_id"].pop(sock)
+        self.game["id_to_socket"].pop(pid)
+        self.game["board"].removePlayer(pid)
 
     def quit(self, data, sock):
         data = {
             "command": "QUIT",
-            "values": {"player": self.game["comms"][sock]}
+            "values": {"player": self.game["socket_to_id"][sock]}
         }
         self.remove_player(sock)
         self._push_notification(data,sock)
@@ -426,15 +458,20 @@ class Server:
         # Sends the message <var=text> that is in <var=values> onto other users,
         # attaching values like username onto the message
         # Returns: does not return just passes on ?? <-- NOTE * Not sure yet. * NOTE -->
+        print("Sending chat",data)
+        message = data["values"]["text"]
+        sender = None
+        if sock:
+            sender = self.game["board"].getPlayer(self.game["socket_to_id"][sock]).getName()
         data = {
             "command": "CHAT",
             "values": {
-                "text": data["text"],
-                "from": self.game["comms"][sock].name
+                "player": sender,
+                "text": data["values"]["text"]
             }
         }
         self._push_notification(data,sock)
-
+        
     def turn(self, data, sock):
         # send message TURN to all clients
         # informing them of whose turn it is
@@ -449,21 +486,34 @@ class Server:
     def go_to(self, data, sock):
         # inform all players where one player is
         # {values: {palyer: int player_id, tile: int tile } }
+        player_id = self.game["socket_to_id"][sock]
+        jail = False
         d = {
             "command": "GOTO",
             "values": {
-                "player": self.game["comms_rev"][sock],
+                "player": player_id,
                 "tile": None
             }
         }
+        p = self.game["board"].getPlayer(player_id)
         if "roll" in data["values"]:
-            d["values"]["tile"] = self._move_player(self.game["comms_rev"][sock], sum(data["values"]["roll"]))
+            d["values"]["tile"] = self._move_player(player_id, sum(data["values"]["roll"]))
+            p.setPosition(d["values"]["tile"])
+        elif "JAIL" in data["values"]:
+            jail = True
+            d["values"]["tile"] = self.game["board"].getJailPosition()
+            p.setPosition(d["values"]["tile"])
         else:
+            print("GO TO DATA:",data)
             d["values"]["tile"] = data["values"]["tile"]
+            p.setPosition(d["values"]["tile"])
         self._push_notification(d)
-        self._proccess_position(d["tile"], sock)
+        if not jail:
+            self._proccess_position(d["values"]["tile"], sock)
+        else:
+            self._proccess_position(-1, sock)
 
-    def pay(self, data, sock):
+    def pay(self,p_from,p_to,amount,sock):
         # transaction between player and player or bank and player if
         # to or from are None
         # {"command": "PAY",
@@ -473,18 +523,26 @@ class Server:
         #        "amount": int amount
         #     }
         # }
-        if data["values"]["to"]:
-            self.game["board"].getPlayer(data["values"]["to"]).addMoney(data["values"]["amount"])
-        if data["values"]["from"]:
-            self.game["board"].getPlayer(data["values"]["from"]).takeMoney(data["values"]["amount"])
+        data = {"command": "PAY",
+                "values": {
+                    "player_from": p_from,
+                    "player_to": p_to,
+                    "amount": amount
+                }
+                }
+        if p_to is not None:
+            self.game["board"].getPlayer(p_to).addMoney(amount)
+        if p_from is not None:
+            self.game["board"].getPlayer(p_from).takeMoney(amount)
         self. _push_notification(data)
+
 
     def sell(self, data, sock):
         # called by request handler <function=_handle_request> when
         # incoming message has <var=command> = SELL
         # 'sells' the properties defined in <var=ids> inside <var=values>
         # Returns: PAY message
-        player_id = self.game["comms"][sock]
+        player_id = self.game["socket_to_id"][sock]
         player = self.game["board"].getPlayer(player_id)
         total = 0
         sold = []
@@ -512,55 +570,95 @@ class Server:
         }
         self._push_notification(data)
 
-    def card(self, tile):
-        # Comunity Chest / Chance cards
-        #
-        # {
-        #    "command": "CARD",
-        #    "values": {
-        #        "text": str text,
-        #        "is_bail": bool is_bail
-        #    }
-        # }
-        space = self.game["board"].getSpace(tile)
-        card = space.drawCard()
-        out = {
-            "command": "CARD",
-            "values": {
-                "text": card.getText(),
-                "is_bail": card.getType() == "BAIL"
-            }
-        }
-        self._push_notification(out)
-        return card
+
+    def sendJail(self, sock):
+        pid = self.game["socket_to_id"][sock]
+        data = {"command": "JAIL",
+                "values": {
+                    "player": pid
+                    }
+                }
+        self._push_notification(data)
+        self.game["board"].getPlayer(pid).updateJailed()
+
+    def time(self):
+        print("Timeout")
+        self._timeout = True
+
+    def gameOver(self, players):
+        #self.discover.join()
+        data = {"command": "CHAT", "values": {"text": "Player " + str(players[0]) + "wins" if len(players) < 2 else "Draw"}}
+        self.chat(data,None)
+        data = {"command": "GAMEOVER"}
+        self._push_notification(data)
+        print("sent game over message",data)
+        self._game_over = True
+        sleep(5)
+        self.__init__()
+
+
 
     def _playGame(self):
         while True:
+            print("game x")
+            current_turn_sock = self.game["id_to_socket"][self.game["turn"]]
+            print(self.game["board"].getPlayer(self.game["turn"])," : ",self.game["board"].getPlayer(self.game["turn"]).isBankrupt())
             try:
-                if (not self.game["last_action"]["rolled"]) and (self.game["comms"][self.game["turn"]] is not None):
+                count_not_bankrupt = []
+                for player in self.game["board"].getPlayerList():
+                    if not player.isBankrupt():
+                        print(1)
+                        count_not_bankrupt += [player]
+                if len(count_not_bankrupt) < 2:
+                    print("GAME OVER")
+                    self.gameOver(count_not_bankrupt)
+                    break
+                if (not self.game["last_action"]["rolled"]) and (current_turn_sock is not None) and (not self.game["board"].getPlayer(self.game["turn"]).isBankrupt()) :
+                    print("game y")
                     sentToJail = False
-                    roll = self.roll({}, self.game["comms"][self.game["turn"]])
-                    if roll[0] == roll[1]:
-                        if self.game["last_action"]["doubles"] == 3:
-                            # 3 doubles == JAIL
-                            #       NOTE
-                            # SEND PLAYER TO JAIL
-                            sentToJail = True
-                            self.game["last_action"]["rolled"] = True
-                        else:
-                            self.game["last_action"]["rolled"] = False
+                    self.turn(None, None)
+                    #self.timer.start()
+                    out = self._waitResponse("ROLL", current_turn_sock)
+                    if out == "timeout":
+                        print("timed out waiting for roll")
+                        self._timeout = False
+                        self.game["last_action"]["rolled"] = False
+                        self.game["turn"] += 1
+                        self.game["last_action"]["last_roll"] = []
                     else:
-                        self.game["last_action"]["rolled"] = True
-                    if not sentToJail:
-                        data = {"command": "GOTO", "values": {"roll": roll}}
-                        self.go_to(data, self.game["comms"][self.game["turn"]])
+                        print("game z")
+                        roll = self.roll({}, current_turn_sock)
+                        if roll[0] == roll[1]:
+                            if self.game["board"].getPlayer(self.game["turn"]).isJailed():
+                                self.game["board"].getPlayer(self.game["turn"]).updateJailed()
+                            if self.game["last_action"]["doubles"] == 3:
+                                self.sendJail(current_turn_sock)
+                                sentToJail = True
+                                self.game["last_action"]["rolled"] = True
+                            else:
+                                self.game["last_action"]["rolled"] = False
+                                self.game["last_action"]["doubles"] += 1
+                        else:
+                            if self.game["board"].getPlayer(self.game["turn"]).isJailed():
+                                self.pay(self.game["turn"], None, Server.GETOUT, None)
+                                self.game["board"].getPlayer(self.game["turn"]).updateJailed()
+                            self.game["last_action"]["rolled"] = True
+                        if not sentToJail:
+                            print("prepping a goto")
+                            data = {"command": "GOTO", "values": {"roll": roll}}
+                            self.go_to(data, current_turn_sock)
+                        else:
+                            data = {"command": "GOTO", "values": "JAIL"}
+                            self.go_to(data, current_turn_sock)
                 else:
+                    print("game z")
                     self.game["last_action"]["rolled"] = False
                     self.game["turn"] += 1
+                    if self.game["turn"] == self.game["top_id"]:
+                        self.game["turn"] = 0
                     self.game["last_action"]["last_roll"] = []
             except Exception as e:
-                print(e)
-
+                print("Exception .... WTF???       ",traceback.print_exc(),e)
 
 if __name__ == '__main__':
     Server()
