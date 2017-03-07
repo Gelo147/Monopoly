@@ -262,10 +262,10 @@ class Client:
         local_id = data["values"]["local"]
         self._board = Board(self.BOARD_FILE, players)
         self._local_player = self._board.getPlayer(local_id)
-
-        root = Tk()
-        self.gui = Wid(root,self)
-        self.gui.makeGame(self._board,self._local_player)
+        if local_id == 0:
+            root = Tk()
+            self.gui = Wid(root,self)
+            self.gui.makeGame(self._board,self._local_player)
 
     def _gameOver(self, data):
         self._sentchat({"values": {"player": None, "text": "Game over!"}})
@@ -284,7 +284,8 @@ class Client:
         else:
             self._sentchat(
                 {"values": {"player": None, "text": "It's " + str(self._board.getPlayer(player_id)) + "'s turn!"}})
-
+        if self.gui:
+            self.gui.newTurn(player_id)
     # Gui.newTurn(player_id)
     def _hasQuit(self, data):
         quitter = (data["values"]["player"])

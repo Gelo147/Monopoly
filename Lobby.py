@@ -21,8 +21,8 @@ class Lobby(Frame):
         self.titlelabel = Label(self.maincontainer, text=self.host + "'s LOBBY", height=4, width=20)
         self.titlelabel.pack(side="top", fill="none", expand=False)
 
-        self.log = st.ScrolledText(self.maincontainer, width=90, wrap="word", height=50)
-        self.log.pack(side="top", fill="both", expand=True)
+        self.log = st.ScrolledText(self.maincontainer, width=90, wrap="word", height=20)
+        self.log.pack(side="top", fill="none", expand=True)
 
         self.chat_box = st.ScrolledText(self.maincontainer, width=30, height=0, undo=True)
         self.chat_box.pack(side="top", fill="x", expand=False)

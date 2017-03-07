@@ -15,8 +15,10 @@ class Wid(Frame):
         #Parent and main container
         self.myParent = parent
         w, h = self.myParent.winfo_screenwidth(), self.myParent.winfo_screenheight()
-        self.myParent.overrideredirect(1)
+        #self.myParent.overrideredirect(1)
         self.myParent.geometry("%dx%d+0+0" % (w, h))
+
+        self._window = Thread(target=self.createGUI, args=())
         
     def makeGame(self,board,player):
         # create a display for a board and a certain player
@@ -24,10 +26,11 @@ class Wid(Frame):
         self.localplayer = player
         self.name = player.getName()
         self.createGUI()
-        self.myParent.mainloop()
     def newTurn(self,turn_id):
-        if turn_id = self.localplayer.getId():
-            print(turn_id)
+        if turn_id == self.localplayer.getId():
+            print("GUI UPDATE")
+            self.cash.set(str(self._localplayer.getBalance()))
+        print("HERE")
 
     def createGUI(self):        
         self.main_container = Frame(self.myParent, background="gray")
@@ -53,7 +56,9 @@ class Wid(Frame):
         self.buffer3.grid(row=0, column=3)
 
         #Adding money label
-        self.money = Label(self.top_frame, text="$$$$", height=2, width=10, fg="red")
+        self.cash = StringVar()
+        self.cash.set("1500")
+        self.money = Label(self.top_frame, textvariable=self.cash, height=2, width=10, fg="red")
         self.money.grid(row=0, column=4)
 
         self.buffer4 = Label(self.top_frame, height=2, width=5, bg="green")
@@ -140,7 +145,7 @@ class Wid(Frame):
             else:
                 r -= 1
 
-        self.myParent.mainloop()
+
 
     #Adds text onto log
     def toLog(self, *args):
