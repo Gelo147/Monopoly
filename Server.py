@@ -238,6 +238,7 @@ class Server:
             data["values"]["game"] = {
                 "name": self.game["name"],
                 "players": self.game["players"],
+                "password": None
             }
         self._send_answer(data, sock, address)
 
