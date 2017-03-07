@@ -134,6 +134,8 @@ class Server:
                         else:
                             raise StupidException("Skip action call")
                         action(data, client_sock)
+                    except StupidException:
+                        pass
                     except Exception as e:
                         print("TCP Error 1 ", e)
                         #con.close()
