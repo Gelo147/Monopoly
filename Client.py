@@ -6,7 +6,8 @@ from Board import Board
 import time
 from select import select
 import traceback
-
+from testbiggui import *
+from tkinter import *
 
 class Client:
     BROADCAST_PORT = 44470
@@ -21,7 +22,7 @@ class Client:
         # self._transmitter = Thread(target=self.addToQueue, args=())
         self._listener = Thread(target=self._message_listener, args=())
         self._open_games = []
-
+        self.gui = None
         self._board = None
         self._local_player = None
 
@@ -262,11 +263,14 @@ class Client:
         self._board = Board(self.BOARD_FILE, players)
         self._local_player = self._board.getPlayer(local_id)
 
+        root = Tk()
+        self.gui = Wid(root,self)
+        self.gui.makeGame(self._board,self._local_player)
+
     def _gameOver(self, data):
         self._sentchat({"values": {"player": None, "text": "Game over!"}})
         self._gameover = True
 
-    # Gui.start(board,local_player)
 
     def _newTurn(self, data):
         # handles a TURN message from the server by telling GUI who's turn has begun

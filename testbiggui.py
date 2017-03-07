@@ -4,9 +4,9 @@ from tkinter import *
 from tkinter import scrolledtext as st
 
 class Wid(Frame):
-    def __init__(self, parent, name, client, *args, **kwargs):
+    def __init__(self, parent, client, *args, **kwargs):
         Frame.__init__(self, *args, **kwargs)
-        self.name = name
+
         self.colours = {"lightgreen":"#CDE6D0","darkgreen":"#66b26f"}
         self.buttons = []
         self.toplevel = None
@@ -17,9 +17,17 @@ class Wid(Frame):
         w, h = self.myParent.winfo_screenwidth(), self.myParent.winfo_screenheight()
         self.myParent.overrideredirect(1)
         self.myParent.geometry("%dx%d+0+0" % (w, h))
-        self.board = Board("text/full_board.txt", [(0 ,"Jack"), (1 , "Crn"), (2  ,"Brain")])
+        
+    def makeGame(self,board,player):
+        # create a display for a board and a certain player
+        self.board = board
+        self.localplayer = player
+        self.name = player.getName()
         self.createGUI()
-        #self.myParent.mainloop()
+        self.myParent.mainloop()
+    def newTurn(self,turn_id):
+        if turn_id = self.localplayer.getId():
+            print(turn_id)
 
     def createGUI(self):        
         self.main_container = Frame(self.myParent, background="gray")
@@ -58,7 +66,7 @@ class Wid(Frame):
         self.buffer6.grid(row=0, column=7)
 
         #Roll button
-        self.roll = Button(self.top_frame, command=self.MakeChoice, height=2, width=5, bg="red", text="test", command=self.client.roll)
+        self.roll = Button(self.top_frame, height=2, width=5, bg="red", text="test", command=self.client.roll)
         self.roll.grid(row=0, column=8)
 
         self.buffer7 = Label(self.top_frame, height=2, width=5, bg="green")
@@ -84,7 +92,7 @@ class Wid(Frame):
         
     
         #Quit button needed as gui diables normal toolbars and forces constant fullscreen
-        self.quuit = Button(self.top_frame, text="X", command=root.destroy, height=2, width=5, fg="green")
+        self.quuit = Button(self.top_frame, text="X", command=self.myParent.destroy, height=2, width=5, fg="green")
         self.quuit.grid(row=0, column=0)
 
         #Left frame containing board and maybe labels
@@ -263,5 +271,4 @@ class Wid(Frame):
         self.decision.destroy()
         pass
 
-root = Tk()
-wid = Wid(root, "")
+
