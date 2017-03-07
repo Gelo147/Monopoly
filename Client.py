@@ -267,6 +267,7 @@ class Client:
             print("It's your turn!")
             #input("start roll?")
             self.roll()
+            self.chat("Chat message... pls send")
         else:
             print("It's",self._board.getPlayer(player_id).getName(),"'s turn!")
 
@@ -316,7 +317,7 @@ class Client:
     def _sentchat(self, data):
         # send a message from the server to the textbox display
         sent_by = data["values"]["player"]
-        message = data["values"]["message"]
+        message = data["values"]["text"]
         if sent_by is not None:
             message = sent_by + ": " + message
         print(message)  # change to send chat for GUI?
@@ -329,7 +330,7 @@ class Client:
         print("card_text:",card_text,"bail_status:",bail_status)
         if bail_status:
             self._local_player.updateBail(bail_status)
-        self._sentchat({"values":{"player": None, "message": "You drew the following card: " + card_text}})
+        self._sentchat({"values":{"player": None, "text": "You drew the following card: " + card_text}})
 
     def _rolled(self,data):
         die1, die2 = data["values"]["roll"][0] ,data["values"]["roll"][1]

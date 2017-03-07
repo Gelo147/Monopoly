@@ -61,24 +61,29 @@ class Server:
             try:
                 connections, write, exception = select(list(self.game["socket_to_id"]), [], [], 0.05)
                 for con in connections:
-                    data = loads(con.recv(4096).decode())
-                    print("Data: ", data)
+                    data = con.recv(4096).decode()
                     try:
-                        if data["command"] == "CHAT":
-                            action = self.chat
-                        elif data["command"] == "TURN":
-                            action = self.turn
-                        elif data["command"] == "START":
-                            action = self.start
-                        elif data["command"] == "QUIT":
-                            action = self.quit
-                        else:
-                            self.connection_queue.put((data, con))
-                            raise StupidException("Skip action call")
-                        action(data, con)
-                    except Exception as e:
-                        print("TCP Error 1 ", e)
-                        #con.close()
+                        data = loads(data)
+                        self._enqueueMessage(data,con)
+                    except ValueError:
+                        if data:
+                            if len(data.split('}{')) == 1:
+                                print("Invalid JSON string received: " + data)
+                            else:
+                                print("Combined JSON payloads received: " + data)
+                                messages = data.split('}{')
+                                messages[0] += '}'
+                                messages[-1] = '{' + messages[-1]
+                                for i, payload in enumerate(messages[1: -1], 1):
+                                    messages[i] = '{' + payload + '}'
+                                for message in messages:
+                                    try:
+                                        message = loads(message)
+                                        self._enqueueMessage(message,con)
+                                    except ValueError:
+                                        print("Invalid JSON string received: " + message)
+                                    except Exception as e:
+                                        traceback.format_exc()
             except timeout:
                 pass
             except StupidException:
@@ -88,6 +93,25 @@ class Server:
             except Exception as e:
                 print("TCP Error 2 ", e)
                 return 0
+
+    def _enqueueMessage(self,data,con):
+        print("Data: ", data)
+        try:
+            if data["command"] == "CHAT":
+                action = self.chat
+            elif data["command"] == "TURN":
+                action = self.turn
+            elif data["command"] == "START":
+                action = self.start
+            elif data["command"] == "QUIT":
+                action = self.quit
+            else:
+                self.connection_queue.put((data, con))
+                raise StupidException("Skip action call")
+            action(data, con)
+        except Exception as e:
+            print("TCP Error 1 ", e)
+            # con.close()
 
     def _service(self,port):
         self.service_sock = socket()
@@ -436,12 +460,13 @@ class Server:
         # Returns: does not return just passes on ?? <-- NOTE * Not sure yet. * NOTE -->
         print("Sending chat",data)
         message = data["values"]["text"]
+        sender = None
         if sock:
             sender = self.game["board"].getPlayer(self.game["socket_to_id"][sock]).getName()
-            message = sender +": "+  message
         data = {
             "command": "CHAT",
             "values": {
+                "player": sender,
                 "text": data["values"]["text"]
             }
         }
@@ -563,12 +588,12 @@ class Server:
     def gameOver(self, players):
         #self.discover.join()
         data = {"command": "CHAT", "values": {"text": "Player " + str(players[0]) + "wins" if len(players) < 2 else "Draw"}}
-        self._push_notification(data)
+        self.chat(data,None)
         data = {"command": "GAMEOVER"}
         self._push_notification(data)
         print("sent game over message",data)
-        sleep(5)
         self._game_over = True
+        sleep(5)
         self.__init__()
 
 
