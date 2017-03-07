@@ -85,7 +85,6 @@ class Client:
         sock_join.connect((address, Client.TRANSMIT_PORT))
         data = json.dumps(({"command": "JOIN", "values": {"username": username, "password": password}}))
         data = sock_join.sendall(data.encode())
-        print("DATA: ", data)
         data = None
         while not data:
             data = json.loads(sock_join.recv(1024).decode())
@@ -253,7 +252,7 @@ class Client:
         self._local_player = self._board.getPlayer(local_id)
         
     def _gameOver(self,data):
-        print("Game over!")
+        self._sentchat({"values":{"player": None, "text":"Game over!"}})
         self._gameover = True
 
     # Gui.start(board,local_player)
@@ -261,19 +260,19 @@ class Client:
     def _newTurn(self, data):
         # handles a TURN message from the server by telling GUI who's turn has begun
         player_id = data["values"]["player"]
-        print(self._board.getPlayer(player_id))
         local_id = self._local_player.getId()
         if player_id == local_id:
-            print("It's your turn!")
+            self._sentchat({"values":{"player": None, "text":"It's your turn!"}})
             #input("start roll?")
             self.roll()
             self.chat("Chat message... pls send")
         else:
-            print("It's",self._board.getPlayer(player_id).getName(),"'s turn!")
+            self._sentchat({"values":{"player": None, "text": "It's " + str(self._board.getPlayer(player_id)) + "'s turn!"}})
 
     # Gui.newTurn(player_id)
     def _hasQuit(self, data):
         quitter = (data["values"]["player"])
+        self._sentchat({"values":{"player": None, "text":str(self._board.getPlayer(quitter))+" has left the game!"}})
         self._board.removePlayer(quitter)
 
     def _movedTo(self,data):
@@ -283,7 +282,7 @@ class Client:
         space = self._board.getSpace(space_position)
         player.setPosition(space_position)
 
-        print(player.getName() + " just moved to " + space.getText())
+        self._sentchat({"values":{"player": None, "text":str(self._board.getPlayer(player))+ " just moved to " + space.getText()}})
 
 
 
@@ -292,7 +291,7 @@ class Client:
         # update the owner of some space in board to be player with given id
         player = self._board.getPlayer(data["values"]["player"])
         space = self._board.getSpace(data["values"]["tile"])
-        print(player.getName() + " just bought '" + space.getText() + "' for " + str(space.getPrice()))
+        self._sentchat({"values":{"player": None, "text":str(self._board.getPlayer(player))+ " just bought '" + space.getText() + "' for " + str(space.getPrice())}})
         player.addProperty(space)
 
     def _paid(self, data):
@@ -302,11 +301,11 @@ class Client:
         amount = (data["values"]["amount"])
         if player_from is not None:
             player = self._board.getPlayer(player_from)
-            print(player.getName(),"just paid",amount)
+            self._sentchat({"values":{"player": None, "text":str(self._board.getPlayer(player))+" just paid "+str(amount)}})
             player.takeMoney(amount)
         if player_to is not None:
             player = self._board.getPlayer(player_to)
-            print(player.getName(), "just got paid", amount)
+            self._sentchat({"values":{"player": None, "text":str(self._board.getPlayer(player))+" just got paid "+str(amount)}})
             player.addMoney(amount)
 
     def _jailed(self,data):
@@ -319,8 +318,9 @@ class Client:
         sent_by = data["values"]["player"]
         message = data["values"]["text"]
         if sent_by is not None:
-            message = sent_by + ": " + message
-        print(message)  # change to send chat for GUI?
+            sent_by = "> "
+        message = sent_by + ": " + message
+        print("Chat: ",message)  # change to send chat for GUI?
 
     def _drewCard(self, data):
         # you drew a card so tell the GUI about it and check if you're on bail
@@ -334,7 +334,7 @@ class Client:
 
     def _rolled(self,data):
         die1, die2 = data["values"]["roll"][0] ,data["values"]["roll"][1]
-        print("You rolled a",die1,"and a",die2)
+        self._sentchat({"values":{"player": None, "text": "You rolled a "+ die1 + " and a " + die2}})
 
 
 if __name__ == '__main__':
