@@ -434,15 +434,19 @@ class Server:
         # Sends the message <var=text> that is in <var=values> onto other users,
         # attaching values like username onto the message
         # Returns: does not return just passes on ?? <-- NOTE * Not sure yet. * NOTE -->
+        print("Sending chat",data)
+        message = data["values"]["text"]
+        if sock:
+            sender = self.game["board"].getPlayer(self.game["socket_to_id"][sock]).getName()
+            message = sender +": "+  message
         data = {
             "command": "CHAT",
             "values": {
-                "text": data["text"],
-                "from": self.game["socket_to_id"][sock].name
+                "text": data["values"]["text"]
             }
         }
         self._push_notification(data,sock)
-
+        
     def turn(self, data, sock):
         # send message TURN to all clients
         # informing them of whose turn it is
