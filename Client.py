@@ -33,6 +33,8 @@ class Client:
 
     def createGame(self, address, username, password):
         # inform the server we wish to create a game
+        if not address:
+            address = self.poll()
         try:
             sock_create = socket()
             sock_create.connect((address, Client.TRANSMIT_PORT))
@@ -83,10 +85,11 @@ class Client:
                 pw = "[PASSWORD]"
             if playerlist:
                 game_desc = playerlist[0] + "'s game. [" + str(len(playerlist)) + " players]" + pw
+                self._open_games += [(game_desc, addr[0])]
             else:
                 game_desc = "No players"
+                self._open_games = [(game_desc, addr[0])]
         s.close()
-        self._open_games += [(game_desc, addr[0])]
         return addr[0]
 
     def join(self, address, username, password):

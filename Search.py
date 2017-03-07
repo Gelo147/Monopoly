@@ -1,3 +1,5 @@
+from Lobby import *
+from Client import *
 from tkinter import *
 
 class Search(Frame):
@@ -37,7 +39,7 @@ class Search(Frame):
         self.selected = None
         self.addresses = []
         self.index = 1
-        self.games = client.listGames()
+        self.games = self.client.listGames()
         for game in self.games:
             self.addresses.append(game[1])
             self.searchlist.insert(self.index, "%s" % (game[0]))
@@ -53,7 +55,7 @@ class Search(Frame):
         if not self.selected:
             return
         else:
-            join(self.selected, self.name, None)
+            self.client.join(self.selected, self.name, None)
             self.destroy()
             lobby = Lobby(self.myparent, self.client, self.name)
 
@@ -61,12 +63,3 @@ class Search(Frame):
     def insertobox(self, data):
         self.searchlist.insert(self.index, str(data))
         self.index += 1
-
-    #Method to reset index, does this if refresh is hit
-    def reset(self):
-        self.index = 1
-
-if __name__ == "__main__":
-    root=Tk()
-    wid = Search(root)
-    root.mainloop()

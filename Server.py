@@ -235,7 +235,7 @@ class Server:
             }
         }
         if len(self.game["players"]) > 0:
-            data["game"] = {
+            data["values"]["game"] = {
                 "name": self.game["name"],
                 "players": self.game["players"],
             }

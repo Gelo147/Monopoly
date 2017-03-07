@@ -1,5 +1,7 @@
 from Client import *
 from tkinter import *
+from Lobby import *
+from Search import *
 
 class Front(Frame):
     def __init__(self, parent, *args, **kwargs):
@@ -79,11 +81,12 @@ class Front(Frame):
         name = self.name.get()
         if name != "":
             if self.creategametrue:
-                self.client.createGame(name, None)
-                self.destroy()
+                self.client.createGame(None, name, None)
+                self.main_container.destroy()
+                self.creating.destroy()
                 lobby = Lobby(self.myparent, self.client, name, name)
             elif self.joingametrue:
-                self.destroy()
+                self.main_container.destroy()
                 search = Search(self.myparent, self.client, name)
 
     def cancelname(self):

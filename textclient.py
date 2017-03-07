@@ -14,7 +14,7 @@ class Wid(Frame):
         w, h = self.myParent.winfo_screenwidth(), self.myParent.winfo_screenheight()
         self.myParent.overrideredirect(1)
         self.myParent.geometry("%dx%d+0+0" % (w, h))
-        self.board = Board("text/board.txt", [(0 ,"Jack"), (1 , "Crn"), (2  ,"Brain")])
+        self.board = Board("text/full_board.txt", [(0 ,"Jack"), (1 , "Crn"), (2  ,"Brain")])
         self.createGUI()
         self.myParent.mainloop()
 

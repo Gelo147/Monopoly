@@ -1,4 +1,5 @@
 from Client import *
+from Client import *
 from tkinter import *
 from tkinter import scrolledtext as st
 
@@ -27,6 +28,10 @@ class Lobby(Frame):
         self.chat_box.pack(side="top", fill="x", expand=False)
         self.chat_box.bind("<Return>", self.toLog)
 
+        if name == host:
+            self.startbutton = Button(self.maincontainer, width=20, height=5, text="start", command=self.client.start)
+            self.startbutton.pack(side="left", fill="none", expand=False)
+
     def toLog(self, *args):
         self.log.config(state="normal")
         if not self.marker:
@@ -38,7 +43,3 @@ class Lobby(Frame):
         self.log.insert("1.0", ">" + self.name + " says:  " + text)
         self.log.config(state="disabled")
         self.chat_box.delete("1.0", END)
-
-root = Tk()
-lobby = Lobby(root, "", "Felix", "Felix")
-root.mainloop()
