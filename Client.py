@@ -282,7 +282,7 @@ class Client:
         space = self._board.getSpace(space_position)
         player.setPosition(space_position)
 
-        self._sentchat({"values":{"player": None, "text":str(self._board.getPlayer(player))+ " just moved to " + space.getText()}})
+        self._sentchat({"values":{"player": None, "text":str(player)+ " just moved to " + space.getText()}})
 
 
 
@@ -291,7 +291,7 @@ class Client:
         # update the owner of some space in board to be player with given id
         player = self._board.getPlayer(data["values"]["player"])
         space = self._board.getSpace(data["values"]["tile"])
-        self._sentchat({"values":{"player": None, "text":str(self._board.getPlayer(player))+ " just bought '" + space.getText() + "' for " + str(space.getPrice())}})
+        self._sentchat({"values":{"player": None, "text":str(player)+ " just bought '" + space.getText() + "' for " + str(space.getPrice())}})
         player.addProperty(space)
 
     def _paid(self, data):
@@ -301,11 +301,11 @@ class Client:
         amount = (data["values"]["amount"])
         if player_from is not None:
             player = self._board.getPlayer(player_from)
-            self._sentchat({"values":{"player": None, "text":str(self._board.getPlayer(player))+" just paid "+str(amount)}})
+            self._sentchat({"values":{"player": None, "text":str(player)+" just paid "+str(amount)}})
             player.takeMoney(amount)
         if player_to is not None:
             player = self._board.getPlayer(player_to)
-            self._sentchat({"values":{"player": None, "text":str(self._board.getPlayer(player))+" just got paid "+str(amount)}})
+            self._sentchat({"values":{"player": None, "text":str(player)+" just got paid "+str(amount)}})
             player.addMoney(amount)
 
     def _jailed(self,data):
@@ -317,9 +317,11 @@ class Client:
         # send a message from the server to the textbox display
         sent_by = data["values"]["player"]
         message = data["values"]["text"]
-        if sent_by is not None:
-            sent_by = "> "
-        message = sent_by + ": " + message
+        if sent_by is None:
+            sent_by = ">"
+        else:
+            sent_by += ": "
+        message = sent_by + message
         print("Chat: ",message)  # change to send chat for GUI?
 
     def _drewCard(self, data):
@@ -334,7 +336,7 @@ class Client:
 
     def _rolled(self,data):
         die1, die2 = data["values"]["roll"][0] ,data["values"]["roll"][1]
-        self._sentchat({"values":{"player": None, "text": "You rolled a "+ die1 + " and a " + die2}})
+        self._sentchat({"values":{"player": None, "text": "You rolled a "+ str(die1) + " and a " + str(die2)}})
 
 
 if __name__ == '__main__':
