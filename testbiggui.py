@@ -2,9 +2,11 @@ from Client import *
 from Board import *
 from tkinter import *
 from tkinter import scrolledtext as st
+import threading
 
-class Wid(Frame):
+class Wid(Frame, threading.Thread):
     def __init__(self, parent, client, *args, **kwargs):
+        Thread.__init__(self)
         Frame.__init__(self, *args, **kwargs)
 
         self.colours = {"lightgreen":"#CDE6D0","darkgreen":"#66b26f"}
@@ -17,22 +19,13 @@ class Wid(Frame):
         w, h = self.myParent.winfo_screenwidth(), self.myParent.winfo_screenheight()
         #self.myParent.overrideredirect(1)
         self.myParent.geometry("%dx%d+0+0" % (w, h))
+        self.board = self.client._board
+        self.localplayer = self.client._local_player
+        self.name = self.localplayer.getName()
+        #self.createGUI()
+        self.run()
 
-        self._window = Thread(target=self.createGUI, args=())
-        
-    def makeGame(self,board,player):
-        # create a display for a board and a certain player
-        self.board = board
-        self.localplayer = player
-        self.name = player.getName()
-        self.createGUI()
-    def newTurn(self,turn_id):
-        if turn_id == self.localplayer.getId():
-            print("GUI UPDATE")
-            self.cash.set(str(self._localplayer.getBalance()))
-        print("HERE")
-
-    def createGUI(self):        
+    def run(self):        
         self.main_container = Frame(self.myParent, background="gray")
         self.main_container.pack(side="top", fill="both", expand=True)
 
@@ -57,8 +50,7 @@ class Wid(Frame):
 
         #Adding money label
         self.cash = StringVar()
-        self.cash.set("1500")
-        self.money = Label(self.top_frame, textvariable=self.cash, height=2, width=10, fg="red")
+        self.money = Label(self.top_frame, text="1500", textvariable=self.cash, height=2, width=10, fg="red")
         self.money.grid(row=0, column=4)
 
         self.buffer4 = Label(self.top_frame, height=2, width=5, bg="green")
@@ -144,9 +136,17 @@ class Wid(Frame):
                 c -= 1
             else:
                 r -= 1
+        self.myParent.after(0, self.update)
+        self.myParent.mainloop()
 
-
-
+    def update(self):
+        self.cash.set(str(self.localplayer.getBalance()))
+        while not self.client.message_q.empty():
+            message = self.client.message_q.get()
+            self.chat_box.insert("1.0", message)
+            self.toLog()
+        self.myParent.after(100, self.update)
+    
     #Adds text onto log
     def toLog(self, *args):
         self.log.config(state="normal")
@@ -155,7 +155,7 @@ class Wid(Frame):
             self.marker = True
         else:
             box = self.chat_box.get("1.0", END)
-            box = box[1:]
+            #box = box[1:]
             text = ">" + box
         self.log.insert("1.0", text)
         self.log.config(state="disabled")
@@ -223,8 +223,9 @@ class Wid(Frame):
             cost = Label(self.toplevel, text=str(self.board.getSpace(i).getPrice()), fg="blue", bg="gray", height=5, width=30)
             cost.pack(side="top", fill="y", expand=False)
 
-            owner = self.board.getSpace(i).getOwner()
-            if owner:
+            ownerID = self.board.getSpace(i).getOwner()
+            if ownerID is not None:
+                owner = self.board.getPlayer(ownerID).getName()
                 ownText = owner
             owned = Label(self.toplevel, text=str(ownText), fg="green", bg="gray", height=5, width=30)
             owned.pack(side="top", fill="y", expand=False)
@@ -275,5 +276,3 @@ class Wid(Frame):
     def ChooseNo(self):
         self.decision.destroy()
         pass
-
-

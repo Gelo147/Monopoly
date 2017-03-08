@@ -4,14 +4,13 @@ from tkinter import *
 from tkinter import scrolledtext as st
 
 class Wid(Frame):
-    def __init__(self, parent, name, client, *args, **kwargs):
+    def __init__(self, parent, name, *args, **kwargs):
         Frame.__init__(self, *args, **kwargs)
         self.name = name
         self.colours = {"lightgreen":"#CDE6D0","darkgreen":"#66b26f"}
         self.buttons = []
         self.toplevel = None
         self.marker = False
-        self.client = client
         #Parent and main container
         self.myParent = parent
         w, h = self.myParent.winfo_screenwidth(), self.myParent.winfo_screenheight()
@@ -58,7 +57,7 @@ class Wid(Frame):
         self.buffer6.grid(row=0, column=7)
 
         #Roll button
-        self.roll = Button(self.top_frame, command=self.MakeChoice, height=2, width=5, bg="red", text="test", command=self.client.roll)
+        self.roll = Button(self.top_frame, command=self.MakeChoice, height=2, width=5, bg="red", text="test",)
         self.roll.grid(row=0, column=8)
 
         self.buffer7 = Label(self.top_frame, height=2, width=5, bg="green")

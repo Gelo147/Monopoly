@@ -6,8 +6,7 @@ from Board import Board
 import time
 from select import select
 import traceback
-from testbiggui import *
-from tkinter import *
+from queue import Queue
 
 class Client:
     BROADCAST_PORT = 44470
@@ -25,6 +24,7 @@ class Client:
         self.gui = None
         self._board = None
         self._local_player = None
+        self.message_q = Queue()
 
     """
     <-------------------- Game discovery and creation ------------------->
@@ -50,7 +50,7 @@ class Client:
                 data = json.loads(data.decode())
                 if data:
                     print("response", data)
-                if data and data["command"] == "CREATE" and data["values"]["status"] == '1':
+                if data and data["command"] == "CREATE" and data["values"] == '1':
                     print("game created successfully")
                     self._socket = sock_create
                     self._listener.start()
@@ -102,7 +102,7 @@ class Client:
         data = None
         while not data:
             data = json.loads(sock_join.recv(1024).decode())
-            if data and data["command"] == "JOIN" and data["values"]["status"] == '1':
+            if data and data["command"] == "JOIN" and data["values"] == '1':
                 self._socket = sock_join
                 self._listener.start()
                 # self._transmitter.start()
@@ -262,10 +262,6 @@ class Client:
         local_id = data["values"]["local"]
         self._board = Board(self.BOARD_FILE, players)
         self._local_player = self._board.getPlayer(local_id)
-        if local_id == 0:
-            root = Tk()
-            self.gui = Wid(root,self)
-            self.gui.makeGame(self._board,self._local_player)
 
     def _gameOver(self, data):
         self._sentchat({"values": {"player": None, "text": "Game over!"}})
@@ -284,8 +280,7 @@ class Client:
         else:
             self._sentchat(
                 {"values": {"player": None, "text": "It's " + str(self._board.getPlayer(player_id)) + "'s turn!"}})
-        if self.gui:
-            self.gui.newTurn(player_id)
+
     # Gui.newTurn(player_id)
     def _hasQuit(self, data):
         quitter = (data["values"]["player"])
@@ -339,7 +334,7 @@ class Client:
         else:
             sent_by += ": "
         message = sent_by + message
-        print("Chat: ", message)  # change to send chat for GUI?
+        self.message_q.put(message)  # change to send chat for GUI?
 
     def _drewCard(self, data):
         # you drew a card so tell the GUI about it and check if you're on bail

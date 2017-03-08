@@ -2,6 +2,8 @@ from Client import *
 from Client import *
 from tkinter import *
 from tkinter import scrolledtext as st
+from time import sleep
+from testbiggui import *
 
 class Lobby(Frame):
     def __init__(self, parent, client, name, host, *args, **kwargs):
@@ -21,15 +23,15 @@ class Lobby(Frame):
         self.titlelabel = Label(self.maincontainer, text=self.host + "'s LOBBY", height=4, width=20)
         self.titlelabel.pack(side="top", fill="none", expand=False)
 
-        self.log = st.ScrolledText(self.maincontainer, width=90, wrap="word", height=20)
-        self.log.pack(side="top", fill="none", expand=True)
+        self.log = st.ScrolledText(self.maincontainer, width=90, wrap="word", height=30)
+        self.log.pack(side="top", fill="both", expand=True)
 
         self.chat_box = st.ScrolledText(self.maincontainer, width=30, height=0, undo=True)
         self.chat_box.pack(side="top", fill="x", expand=False)
         self.chat_box.bind("<Return>", self.toLog)
 
         if name == host:
-            self.startbutton = Button(self.maincontainer, width=20, height=5, text="start", command=self.client.start)
+            self.startbutton = Button(self.maincontainer, width=20, height=5, text="start", command=self.start)
             self.startbutton.pack(side="left", fill="none", expand=False)
 
     def toLog(self, *args):
@@ -43,3 +45,9 @@ class Lobby(Frame):
         self.log.insert("1.0", ">" + self.name + " says:  " + text)
         self.log.config(state="disabled")
         self.chat_box.delete("1.0", END)
+
+    def start(self):
+        self.client.start()
+        sleep(1)
+        self.maincontainer.destroy()
+        self.wid = Wid(self.myparent, self.client)
