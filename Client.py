@@ -50,7 +50,7 @@ class Client:
                 data = json.loads(data.decode())
                 if data:
                     print("response", data)
-                if data and data["command"] == "CREATE" and data["values"] == '1':
+                if data and data["command"] == "CREATE" and data["values"]["status"] == '1':
                     print("game created successfully")
                     self._socket = sock_create
                     self._listener.start()
@@ -102,7 +102,7 @@ class Client:
         data = None
         while not data:
             data = json.loads(sock_join.recv(1024).decode())
-            if data and data["command"] == "JOIN" and data["values"] == '1':
+            if data and data["command"] == "JOIN" and data["values"]["status"] == '1':
                 self._socket = sock_join
                 self._listener.start()
                 # self._transmitter.start()
@@ -262,6 +262,7 @@ class Client:
         local_id = data["values"]["local"]
         self._board = Board(self.BOARD_FILE, players)
         self._local_player = self._board.getPlayer(local_id)
+        print("you are",self._local_player,"lockal id", local_id)
 
     def _gameOver(self, data):
         self._sentchat({"values": {"player": None, "text": "Game over!"}})
@@ -270,14 +271,18 @@ class Client:
 
     def _newTurn(self, data):
         # handles a TURN message from the server by telling GUI who's turn has begun
+        print("x")
         player_id = data["values"]["player"]
         local_id = self._local_player.getId()
+        print(player_id, local_id)
         if player_id == local_id:
+            print("y")
             self._sentchat({"values": {"player": None, "text": "It's your turn!"}})
             # input("start roll?")
             self.roll()
             self.chat("Chat message... pls send")
         else:
+            print("z")
             self._sentchat(
                 {"values": {"player": None, "text": "It's " + str(self._board.getPlayer(player_id)) + "'s turn!"}})
 

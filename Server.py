@@ -485,6 +485,7 @@ class Server:
                 "player": self.game["turn"]
             }
         }
+        print(data)
         self._push_notification(data)
 
     def go_to(self, data, sock):
