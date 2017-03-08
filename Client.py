@@ -50,7 +50,7 @@ class Client:
                 data = json.loads(data.decode())
                 if data:
                     print("response", data)
-                if data and data["command"] == "CREATE" and data["values"] == '1':
+                if data and data["command"] == "CREATE" and data["values"]["status"] == '1':
                     print("game created successfully")
                     self._socket = sock_create
                     self._listener.start()
@@ -102,7 +102,7 @@ class Client:
         data = None
         while not data:
             data = json.loads(sock_join.recv(1024).decode())
-            if data and data["command"] == "JOIN" and data["values"] == '1':
+            if data and data["command"] == "JOIN" and data["values"]["status"] == '1':
                 self._socket = sock_join
                 self._listener.start()
                 # self._transmitter.start()

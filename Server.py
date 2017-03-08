@@ -210,13 +210,13 @@ class Server:
             self.game["top_id"] += 1
             data = {
                 "command": "CREATE",
-                "values": "1",
+                "values": {"status":"1"},
             }
             self._run_incomming()
         else:
             data = {
                 "command": "CREATE",
-                "values": "0",
+                "values": "0values": {"status":"0"},
             }
         self._send_answer_tcp(data,sock)
 
@@ -258,7 +258,7 @@ class Server:
             self._run_incomming()
         data = {
             "command": "JOIN",
-            "values": success,
+            "values": {"status":success},
         }
         self._send_answer_tcp(data,sock)
 
