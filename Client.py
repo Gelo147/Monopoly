@@ -35,7 +35,7 @@ class Client:
     def createGame(self, address, username, password):
         # inform the server we wish to create a game
         if not address:
-            address = self.poll()
+            address = ""# self.poll()
         try:
             sock_create = socket()
             sock_create.connect((address, Client.TRANSMIT_PORT))
@@ -59,14 +59,14 @@ class Client:
             pass
 
     def test(self):
-        address = self.poll()
+        address = "csg21-21" #self.poll()
         create = input("Create game? y / n")
         if create == 'y':
             self.createGame(address, "conortwo", "psswd")
             input("want to start?")
             self.start()
         else:
-            self.join(address, "player 2", "psswd2")
+            self.join(address, "player 2", "psswd")
 
     def poll(self):
         # used to discover any open games on the network
@@ -97,7 +97,7 @@ class Client:
         # ask to join a specific game with username and password
         sock_join = socket()
         sock_join.connect((address, Client.TRANSMIT_PORT))
-        data = json.dumps(({"command": "JOIN", "values": {"username": username, "password": password}}))
+        data = json.dumps(({"command": "JOIN", "values": {"game":"Monopoly","username": username, "password": password}}))
         data = sock_join.sendall(data.encode())
         data = None
         while not data:
@@ -242,6 +242,11 @@ class Client:
         data = json.dumps({"command": "QUIT"})
         data = self._socket.sendall(data.encode())
         self._gameover = True
+        
+    def endTurn(self):
+        # Tell the server that you wish to end your current turn
+        data = json.dumps({"command": "END"})
+        data = self._socket.sendall(data.encode())
 
     """
     <---------- Updating local state based on Server messages ----------->
@@ -278,13 +283,15 @@ class Client:
         if player_id == local_id:
             print("y")
             self._sentchat({"values": {"player": None, "text": "It's your turn!"}})
-            # input("start roll?")
+            #
+            input("start roll?")
             self.roll()
             self.chat("Chat message... pls send")
         else:
             print("z")
             self._sentchat(
                 {"values": {"player": None, "text": "It's " + str(self._board.getPlayer(player_id)) + "'s turn!"}})
+        self.endTurn()
 
     # Gui.newTurn(player_id)
     def _hasQuit(self, data):
@@ -339,6 +346,7 @@ class Client:
         else:
             sent_by += ": "
         message = sent_by + message
+        print(message)
         self.message_q.put(message)  # change to send chat for GUI?
 
     def _drewCard(self, data):
