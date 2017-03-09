@@ -50,6 +50,14 @@ class Front(Frame):
         self.name = Entry(self.creating, width=15)
         self.name.pack(side="left", fill="none", expand=False)
 
+        #Server instruction
+        self.instruction2 = Label(self.creating, text="Server address")
+        self.instruction2.pack(side="right", fill="none", expand=False)
+
+        #Input server to go to
+        self.serveraddr = Entry(self.creating, width=15)
+        self.serveraddr.pack(side="right", fill="none", expand=False)
+
         #Accept button
         self.accept = Button(self.creating, text="ACCEPT", command=self.acceptname, height=5, width=20)
         self.accept.pack(side="bottom", fill="none", expand=False)
@@ -70,6 +78,12 @@ class Front(Frame):
         self.name = Entry(self.joining, width=15)
         self.name.pack(side="left", fill="none", expand=False)
 
+        self.instruction2 = Label(self.joining, text="Server address")
+        self.instruction2.pack(side="right", fill="none", expand=False)
+        
+        self.serveraddr = Entry(self.joining, width=15)
+        self.serveraddr.pack(side="right", fill="none", expand=False)
+
         self.accept = Button(self.joining, text="ACCEPT", command=self.acceptname, height=5, width=20)
         self.accept.pack(side="bottom", fill="none", expand=False)
 
@@ -81,14 +95,14 @@ class Front(Frame):
         name = self.name.get()
         if name != "":
             if self.creategametrue:
-                self.client.createGame(None, name, None)
+                self.client.createGame(self.serveraddr.get(), name, None)
                 self.main_container.destroy()
                 self.creating.destroy()
                 lobby = Lobby(self.myparent, self.client, name, name)
             elif self.joingametrue:
                 self.main_container.destroy()
                 self.joining.destroy()
-                search = Search(self.myparent, self.client, name)
+                search = Search(self.myparent, self.client, name, self.serveraddr.get())
 
     def cancelname(self):
         #Resets sanity variables and destroys window

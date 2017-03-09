@@ -115,7 +115,6 @@ class Wid(Frame, threading.Thread):
         bw = 15
         for i in range(40):
             self.buttons.append(Button(self.left_frame, height=bh, width=bw,wraplength=100, command= lambda x=i: self.create_window(x)))
-            print(i)
 
         #buttons[10]["text"] = "go to jail"
         for i in range(0, 40):
@@ -145,6 +144,19 @@ class Wid(Frame, threading.Thread):
             message = self.client.message_q.get()
             self.chat_box.insert("1.0", message)
             self.toLog()
+        for i in range(0, 40):
+            owner = None
+            space = self.board.getSpace(i)
+            if space.getType() == "PROPERTY":
+                owner = self.board.getSpace(i).getOwner()
+                if owner is not None:
+                    self.buttons[i]["bg"] = "blue"
+            for player in self.board.getPlayerList():
+                if player.getPosition() == i:
+                    self.buttons[i]["bg"] = "red"
+                else:
+                    if owner:
+                        self.button[i]["bg"] = "blue"
         self.myParent.after(100, self.update)
     
     #Adds text onto log

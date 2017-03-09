@@ -48,6 +48,7 @@ class Lobby(Frame):
 
     def start(self):
         self.client.start()
-        sleep(1)
+        while not self.client.started:
+            continue
         self.maincontainer.destroy()
         self.wid = Wid(self.myparent, self.client)

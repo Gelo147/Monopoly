@@ -3,7 +3,7 @@ from Client import *
 from tkinter import *
 
 class Search(Frame):
-    def __init__(self, parent, client, name, *args, **kwargs):
+    def __init__(self, parent, client, name, serveraddr, *args, **kwargs):
         Frame.__init__(self, *args, **kwargs)
 
         self.client = client
@@ -12,6 +12,7 @@ class Search(Frame):
         self.addresses = []
         self.hosts = []
         self.selected = None
+        self.serveraddr = serveraddr
 
         self.index = 1
 
@@ -39,7 +40,6 @@ class Search(Frame):
     #Finds and displays games
     def refreshgames(self):
         for i in range(1, self.index):
-            print(i)
             self.searchlist.delete(i)
         if self.index == 1:
             self.searchlist.delete(1)

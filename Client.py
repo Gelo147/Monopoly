@@ -25,6 +25,7 @@ class Client:
         self._board = None
         self._local_player = None
         self.message_q = Queue()
+        self.started = False
 
     """
     <-------------------- Game discovery and creation ------------------->
@@ -35,7 +36,7 @@ class Client:
     def createGame(self, address, username, password):
         # inform the server we wish to create a game
         if not address:
-            address = ""# self.poll()
+            address = self.poll()
         try:
             sock_create = socket()
             sock_create.connect((address, Client.TRANSMIT_PORT))
@@ -59,7 +60,7 @@ class Client:
             pass
 
     def test(self):
-        address = "csg21-21" #self.poll()
+        address = self.poll()
         create = input("Create game? y / n")
         if create == 'y':
             self.createGame(address, "conortwo", "psswd")
@@ -268,6 +269,7 @@ class Client:
         self._board = Board(self.BOARD_FILE, players)
         self._local_player = self._board.getPlayer(local_id)
         print("you are",self._local_player,"lockal id", local_id)
+        self.started = True
 
     def _gameOver(self, data):
         self._sentchat({"values": {"player": None, "text": "Game over!"}})
@@ -284,7 +286,7 @@ class Client:
             print("y")
             self._sentchat({"values": {"player": None, "text": "It's your turn!"}})
             #
-            input("start roll?")
+            #input("start roll?")
             self.roll()
             self.chat("Chat message... pls send")
         else:
