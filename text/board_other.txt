@@ -1,0 +1,40 @@
+﻿GO * COLLECT 200€ SALARY AS YOU PASS GO -> * END
+PROPERTY * G.19 * 60 * brown * END
+DECK * COMMUNITY CHEST * text/StandardCommunityChestDeck.txt * END
+PROPERTY * G.36 * 60 * brown * END
+TAX * INCOME TAX * 200 * END
+PROPERTY * Middle Lift * 200 * transport * END
+PROPERTY * G.20 * 100 * cyan * END
+DECK * CHANCE * text/StandardChanceDeck.txt * END
+PROPERTY * G.21 * 100 * cyan * END
+PROPERTY * G.24 * 120 * cyan * END
+JAIL * IN JAIL // JUST VISITING * END
+PROPERTY * 1.11 * 140 * purple * END
+PROPERTY * Men's Toilet * 150 * utility * END
+PROPERTY * 1.13 * 140 * purple * END
+PROPERTY * 1.10 * 160 * purple * END
+PROPERTY * Side Lift * 200 * transport * END
+PROPERTY * 1.15 * 180 * orange * END
+DECK * COMMUNITY CHEST * text/StandardCommunityChestDeck.txt * END
+PROPERTY * 1.22 * 180 * orange * END
+PROPERTY * 1.16 * 200 * orange * END
+FREE * FREE PARKING * END
+PROPERTY * 2.19 * 220 * red * END
+DECK * CHANCE * text/StandardChanceDeck.txt * END
+PROPERTY * 2.20 * 220 * red * END
+PROPERTY * 2.21 * 240 *  red * END
+PROPERTY * Middle Stairs * 200 * transport * END
+PROPERTY * 2.32 * 260 * yellow * END
+PROPERTY * 2.34 * 260 * yellow * END
+PROPERTY * Women's Toilet * 150 * utility * END
+PROPERTY * 2.35 * 280 * yellow * END
+GOTOJAIL * GO TO JAIL * END
+PROPERTY * 3.012 * 300 * green * END
+PROPERTY * 3.015 * 300 * green * END
+DECK * COMMUNITY CHEST * text/StandardCommunityChestDeck.txt * END
+PROPERTY * 3.023 * 320 * green * END
+PROPERTY * Side Stairs * 200 * transport * END
+DECK * CHANCE * text/StandardChanceDeck.txt * END
+PROPERTY * 3.053 * 350 * blue * END
+TAX * SUPER TAX * 200 * END
+PROPERTY * 3.054 * 400 * blue * END

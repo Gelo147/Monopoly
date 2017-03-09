@@ -17,8 +17,8 @@ class Server:
     SERVICE_PORT = 44469
     BOARD_FILE = "text/full_board.txt"
     CLIENT_DECISION_TIME = 60
-    GO_CASH = 200
-    GETOUT = 50
+    GO_CASH = 50
+    GETOUT = 200
 
     def __init__(self, broadcast_port=None, service_port=None):
         self._game_over = False
@@ -134,6 +134,8 @@ class Server:
                         else:
                             raise StupidException("Skip action call")
                         action(data, client_sock)
+                    except StupidException:
+                        pass
                     except Exception as e:
                         print("TCP Error 1 ", e)
                         #con.close()
@@ -227,14 +229,16 @@ class Server:
             "values": {
                 "game": {
                     "name": None,
-                    "players": None
+                    "players": None,
+                    "password": None,
                 }
             }
         }
         if len(self.game["players"]) > 0:
-            data["game"] = {
+            data["values"]["game"] = {
                 "name": self.game["name"],
                 "players": self.game["players"],
+                "password": None
             }
         self._send_answer(data, sock, address)
 
