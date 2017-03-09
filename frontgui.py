@@ -93,16 +93,17 @@ class Front(Frame):
     def acceptname(self):
         #Accepts the name if not empty and joins/creates a game
         name = self.name.get()
-        if name != "":
+        server = self.serveraddr.get()
+        if name != "" and sever != "":
             if self.creategametrue:
-                self.client.createGame(self.serveraddr.get(), name, None)
+                self.client.createGame(server, name, None)
                 self.main_container.destroy()
                 self.creating.destroy()
                 lobby = Lobby(self.myparent, self.client, name, name)
             elif self.joingametrue:
                 self.main_container.destroy()
                 self.joining.destroy()
-                search = Search(self.myparent, self.client, name, self.serveraddr.get())
+                search = Search(self.myparent, self.client, name, serveraddr)
 
     def cancelname(self):
         #Resets sanity variables and destroys window
