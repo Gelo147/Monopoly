@@ -33,6 +33,12 @@ class Lobby(Frame):
         if name == host:
             self.startbutton = Button(self.maincontainer, width=20, height=5, text="start", command=self.start)
             self.startbutton.pack(side="left", fill="none", expand=False)
+        else:
+            while not self.client.started:
+                continue
+            self.maincontainer.destroy()
+            self.wid = Wid(self.myparent, self.client)
+            
 
     def toLog(self, *args):
         self.log.config(state="normal")
