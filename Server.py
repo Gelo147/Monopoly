@@ -119,7 +119,6 @@ class Server:
         self.service_sock.bind(('', port))
         self.service_sock.listen(10)
         print("Service Listening")
-        print("Local Address",gethostbyname(gethostname()))
         while not self._game_over:
             try:
                 connections, write, exception = select([self.service_sock], [], [], 0.05)
@@ -211,13 +210,13 @@ class Server:
             self.game["top_id"] += 1
             data = {
                 "command": "CREATE",
-                "values": {"status":"1"},
+                "values": "1",
             }
             self._run_incomming()
         else:
             data = {
                 "command": "CREATE",
-                "values": {"status":"1"},
+                "values": "0",
             }
         self._send_answer_tcp(data,sock)
 
@@ -259,7 +258,7 @@ class Server:
             self._run_incomming()
         data = {
             "command": "JOIN",
-            "values": {"status":success},
+            "values": success,
         }
         self._send_answer_tcp(data,sock)
 
@@ -274,7 +273,7 @@ class Server:
         if self.game["socket_to_id"][sock] == 0:
             if self.game["top_id"] >= 2:
                 self.game["started"] = True
-                players = {i:self.game["players"][i] for i in range(len(self.game["players"]))}
+                players = [(i, self.game["players"][i]) for i in range(len(self.game["players"]))]
                 self.game["board"] = Board(Server.BOARD_FILE, players)
                 data = {
                     "command": "START",
@@ -486,7 +485,6 @@ class Server:
                 "player": self.game["turn"]
             }
         }
-        print(data)
         self._push_notification(data)
 
     def go_to(self, data, sock):
@@ -613,6 +611,7 @@ class Server:
                 count_not_bankrupt = []
                 for player in self.game["board"].getPlayerList():
                     if not player.isBankrupt():
+                        print(1)
                         count_not_bankrupt += [player]
                 if len(count_not_bankrupt) < 2:
                     print("GAME OVER")

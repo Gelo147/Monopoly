@@ -114,12 +114,11 @@ class Wid(Frame, threading.Thread):
         bh = 4
         bw = 15
         for i in range(40):
-            self.buttons.append(Button(self.left_frame, height=bh, width=bw,wraplength=100, command= lambda x=i: self.create_window(x)))
+            self.buttons.append(Button(self.left_frame, height=bh, bg="gray", width=bw,wraplength=100, command= lambda x=i: self.create_window(x)))
 
         #buttons[10]["text"] = "go to jail"
         for i in range(0, 40):
             space = self.board.getSpace(i)
-            print(i,space)
             self.buttons[i]["text"] = space.getText()
         
         #Positioning buttons
@@ -135,7 +134,7 @@ class Wid(Frame, threading.Thread):
                 c -= 1
             else:
                 r -= 1
-        self.myParent.after(0, self.update)
+        self.myParent.after(50, self.update)
         self.myParent.mainloop()
 
     def update(self):
@@ -156,7 +155,9 @@ class Wid(Frame, threading.Thread):
                     self.buttons[i]["bg"] = "red"
                 else:
                     if owner:
-                        self.button[i]["bg"] = "blue"
+                        self.buttons[i]["bg"] = "blue"
+                    else:
+                        self.buttons[i]["bg"] = "gray"
         self.myParent.after(100, self.update)
     
     #Adds text onto log
