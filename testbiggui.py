@@ -296,3 +296,4 @@ class Wid(Frame, threading.Thread):
         self.decision.destroy()
         self.client.buy(0)
         self.myParent.after(100, self.update)
+

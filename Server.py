@@ -285,6 +285,7 @@ class Server:
                 for socket in self.game["socket_to_id"].keys():
                     data["values"]["local"] = self.game["socket_to_id"][socket]
                     self._send_answer_tcp(data,socket)
+                #self.turn(None,None)
                 self._playGame()
             else:
                 data = {
@@ -396,10 +397,14 @@ class Server:
             pass #error
 
     def _waitResponse(self, command, sock):
+        self.timer = Timer(60, self.time)
+        self.timer.start()
         while not self._timeout:
             message = self.connection_queue.get()
             if message:
                 if sock == message[1] and message[0]["command"] == command:
+                    self.timer.cancel()
+                    self._timeout = False
                     return message
         return "timeout"
 
@@ -429,10 +434,9 @@ class Server:
             # send BUY?
             self.buyRequest(None, sock)
             # wait for response
-            #self.timer.start()
             out = self._waitResponse("BUY", sock)
             if out == "timeout":
-                self._timeout = False
+                pass
             else:
                 print("On property response:", out)
                 if out[0]["values"]["buy"]:
@@ -621,7 +625,7 @@ class Server:
                     print("game y")
                     sentToJail = False
                     self.turn(None, None)
-                    #self.timer.start()
+                    print("SENT TURN ----------------------------------------")
                     out = self._waitResponse("ROLL", current_turn_sock)
                     if out == "timeout":
                         print("timed out waiting for roll")
