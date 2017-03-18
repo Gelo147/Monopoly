@@ -17,8 +17,8 @@ class Server:
     SERVICE_PORT = 44469
     BOARD_FILE = "text/full_board.txt"
     CLIENT_DECISION_TIME = 60
-    GO_CASH = 200
-    GETOUT = 50
+    GO_CASH = 50
+    GETOUT = 200
 
     def __init__(self, broadcast_port=None, service_port=None):
         self._game_over = False
@@ -134,6 +134,8 @@ class Server:
                         else:
                             raise StupidException("Skip action call")
                         action(data, client_sock)
+                    except StupidException:
+                        pass
                     except Exception as e:
                         print("TCP Error 1 ", e)
                         #con.close()
@@ -208,13 +210,13 @@ class Server:
             self.game["top_id"] += 1
             data = {
                 "command": "CREATE",
-                "values": "1",
+                "values":{"status":"1"},
             }
             self._run_incomming()
         else:
             data = {
                 "command": "CREATE",
-                "values": "0",
+                "values":{"status":"0"},
             }
         self._send_answer_tcp(data,sock)
 
@@ -227,14 +229,16 @@ class Server:
             "values": {
                 "game": {
                     "name": None,
-                    "players": None
+                    "players": None,
+                    "password": None,
                 }
             }
         }
         if len(self.game["players"]) > 0:
-            data["game"] = {
+            data["values"]["game"] = {
                 "name": self.game["name"],
                 "players": self.game["players"],
+                "password": None
             }
         self._send_answer(data, sock, address)
 
@@ -254,7 +258,7 @@ class Server:
             self._run_incomming()
         data = {
             "command": "JOIN",
-            "values": success,
+            "values":{"status":success}
         }
         self._send_answer_tcp(data,sock)
 
@@ -269,7 +273,7 @@ class Server:
         if self.game["socket_to_id"][sock] == 0:
             if self.game["top_id"] >= 2:
                 self.game["started"] = True
-                players = [(i, self.game["players"][i]) for i in range(len(self.game["players"]))]
+                players = {i: self.game["players"][i] for i in range(len(self.game["players"]))}
                 self.game["board"] = Board(Server.BOARD_FILE, players)
                 data = {
                     "command": "START",
@@ -587,7 +591,7 @@ class Server:
 
     def gameOver(self, players):
         #self.discover.join()
-        data = {"command": "CHAT", "values": {"text": "Player " + str(players[0]) + "wins" if len(players) < 2 else "Draw"}}
+        data = {"command": "CHAT", "values": {"text": "Player " + str(players[0]) + " wins" if len(players) < 2 else "Draw"}}
         self.chat(data,None)
         data = {"command": "GAMEOVER"}
         self._push_notification(data)
