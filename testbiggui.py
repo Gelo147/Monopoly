@@ -21,6 +21,7 @@ class Wid(Frame, threading.Thread):
         self.myParent.geometry("%dx%d+0+0" % (w, h))
         self.board = self.client._board
         self.localplayer = self.client._local_player
+        print(self.localplayer)
         self.name = self.localplayer.getName()
         #self.createGUI()
         self.run()
@@ -63,7 +64,7 @@ class Wid(Frame, threading.Thread):
         self.buffer6.grid(row=0, column=7)
 
         #Roll button
-        self.roll = Button(self.top_frame, height=2, width=5, bg="red", text="test", command=self.client.roll)
+        self.roll = Button(self.top_frame, height=2, width=5, bg="red", text="roll", command=self.client.roll)
         self.roll.grid(row=0, column=8)
 
         self.buffer7 = Label(self.top_frame, height=2, width=5, bg="green")
@@ -158,8 +159,12 @@ class Wid(Frame, threading.Thread):
                         self.buttons[i]["bg"] = "blue"
                     else:
                         self.buttons[i]["bg"] = "gray"
-        self.myParent.after(100, self.update)
-    
+        if self.client._offer:
+            current_pos = self.localplayer.getPosition()
+            space_name = self.board.getSpace(current_pos).getText()
+            self.MakeChoice(space_name)
+        else:
+            self.myParent.after(100, self.update)
     #Adds text onto log
     def toLog(self, *args):
         self.log.config(state="normal")
@@ -252,7 +257,7 @@ class Wid(Frame, threading.Thread):
         OKbutton.pack(side="top", fill="y", expand=False)
 
     #Method to be called when player lands on unoccupied property
-    def MakeChoice(self):
+    def MakeChoice(self,name):
         #Make new window        
         self.decision = Toplevel(self, height=50, width=60)
 
@@ -270,7 +275,7 @@ class Wid(Frame, threading.Thread):
         y = h/2 - size[1]/2
         self.decision.geometry("%dx%d+%d+%d" % (size + (x, y)))
 
-        prop = "WGB" #Need to change
+        prop = name
         txt = "Would you like to buy this property: " + prop
         question = Label(self.decision, fg="purple", text=txt, height=5, width=30)
         question.pack(side="top", fill="x", expand=False)        
@@ -284,8 +289,10 @@ class Wid(Frame, threading.Thread):
 
     def ChooseYes(self):
         self.decision.destroy()
-        pass
+        self.client.buy(1)
+        self.myParent.after(100, self.update)
 
     def ChooseNo(self):
         self.decision.destroy()
-        pass
+        self.client.buy(0)
+        self.myParent.after(100, self.update)

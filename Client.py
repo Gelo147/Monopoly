@@ -21,11 +21,13 @@ class Client:
         # self._transmitter = Thread(target=self.addToQueue, args=())
         self._listener = Thread(target=self._message_listener, args=())
         self._open_games = []
-        self.gui = None
+        self._textbased = False
         self._board = None
         self._local_player = None
         self.message_q = Queue()
         self.started = False
+        self._offer = False
+
 
     """
     <-------------------- Game discovery and creation ------------------->
@@ -60,14 +62,15 @@ class Client:
             pass
 
     def test(self):
-        address = self.poll()
+        self._textbased = True
+        address = input("Server address?:")
         create = input("Create game? y / n")
         if create == 'y':
-            self.createGame(address, "conortwo", "psswd")
+            self.createGame(address, "hostman", None)
             input("want to start?")
             self.start()
         else:
-            self.join(address, "player 2", "psswd")
+            self.join(address, "player 2",None)
 
     def poll(self):
         # used to discover any open games on the network
@@ -134,7 +137,7 @@ class Client:
                             if len(data.split('}{')) == 1:
                                 print("Invalid JSON string received: " + data)
                             else:
-                                print("Combined JSON payloads received: " + data)
+
                                 messages = data.split('}{')
                                 messages[0] += '}'
                                 messages[-1] = '{' + messages[-1]
@@ -171,9 +174,15 @@ class Client:
         elif command == "TURN":
             self._newTurn(data)
         elif command == "BUY?":
-            self.buy(True)
+            if self._textbased:
+                answer = 0
+                #response = input("Would you like to buy? y/n?")
+                #if response == "y":
+                answer = 1
+                self.buy(answer)
+            else:
+                self._offer = True
         elif command == "BOUGHT":
-            print("BOUGHT BUG", data)
             self._bought(data)
         elif command == "GOTO":
             self._movedTo(data)
@@ -185,8 +194,7 @@ class Client:
             self._drewCard(data)
         elif command == "QUIT":
             self._hasQuit(data)
-        else:
-            print("Something weird", data)
+
 
     def _waitResponse(self, command):
         while not self._timeout:
@@ -224,9 +232,12 @@ class Client:
         # tell the server that we wish to roll the dice and start our turn
         data = json.dumps({"command": "ROLL"})
         data = self._socket.sendall(data.encode())
+        self._allowed_roll = False
 
     def buy(self, answer):
         # tell the server whether we wish to buy a property we landed on or not
+        if self._offer:
+            self._offer = False
         if answer:
             data = json.dumps({"command": "BUY", "values": {"buy": 1}})
         else:
@@ -243,7 +254,7 @@ class Client:
         data = json.dumps({"command": "QUIT"})
         data = self._socket.sendall(data.encode())
         self._gameover = True
-        
+
     def endTurn(self):
         # Tell the server that you wish to end your current turn
         data = json.dumps({"command": "END"})
@@ -268,29 +279,27 @@ class Client:
         local_id = data["values"]["local"]
         self._board = Board(self.BOARD_FILE, players)
         self._local_player = self._board.getPlayer(local_id)
-        print("you are",self._local_player,"lockal id", local_id)
         self.started = True
 
     def _gameOver(self, data):
+        if not self._local_player.isBankrupt():
+            self.chat("Haha yes.. I knew I would win!")
+        else:
+            self.chat("Damn you have me beat..")
         self._sentchat({"values": {"player": None, "text": "Game over!"}})
         self._gameover = True
 
 
     def _newTurn(self, data):
         # handles a TURN message from the server by telling GUI who's turn has begun
-        print("x")
         player_id = data["values"]["player"]
         local_id = self._local_player.getId()
-        print(player_id, local_id)
         if player_id == local_id:
-            print("y")
             self._sentchat({"values": {"player": None, "text": "It's your turn!"}})
-            #
-            #input("start roll?")
-            self.roll()
-            self.chat("Chat message... pls send")
+            if self._textbased:
+                #input("start roll?")
+                self.roll()
         else:
-            print("z")
             self._sentchat(
                 {"values": {"player": None, "text": "It's " + str(self._board.getPlayer(player_id)) + "'s turn!"}})
         self.endTurn()
