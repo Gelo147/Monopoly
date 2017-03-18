@@ -462,7 +462,7 @@ class Server:
         message = data["values"]["text"]
         sender = None
         if sock:
-            sender = self.game["board"].getPlayer(self.game["socket_to_id"][sock]).getName()
+            sender = self.game["players"][self.game["socket_to_id"][sock]]
         data = {
             "command": "CHAT",
             "values": {
